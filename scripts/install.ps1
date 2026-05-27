@@ -350,6 +350,44 @@ function New-StartMenuShortcut {
 function Start-Installed {
     Write-Step "Launching $($script:ExeName)..."
     Start-Process -FilePath $script:InstallExe -WorkingDirectory $script:InstallDir
+
+    # Give the tray icon a moment to appear before the MessageBox steals focus.
+    Start-Sleep -Milliseconds 800
+    Show-TrayHint
+}
+
+function Show-TrayHint {
+    $title = 'AwakeGuard is running'
+    $body  = @(
+        'AwakeGuard runs in the system tray, not as a window.'
+        ''
+        'Look in the notification area (bottom-right of the taskbar) for a small'
+        'circle icon. It is gray when off and green when active.'
+        ''
+        'If you do not see it, click the small up-arrow (^) next to the clock to'
+        'reveal hidden icons. You can drag it onto the always-visible row so it'
+        'stays put.'
+        ''
+        'Left-click the icon to toggle, right-click for the menu, or double-click'
+        'to open the settings window.'
+    ) -join "`r`n"
+
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        [void][System.Windows.Forms.MessageBox]::Show(
+            $body,
+            $title,
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information)
+    } catch {
+        # Fallback for hosts where Windows Forms isn't available
+        # (e.g. PowerShell Core without -STA): print to console instead.
+        Write-Host ''
+        Write-Host "  $title" -ForegroundColor Cyan
+        Write-Host ''
+        $body -split "`r`n" | ForEach-Object { Write-Host "  $_" }
+        Write-Host ''
+    }
 }
 
 # ---------------------------------------------------------------------------
