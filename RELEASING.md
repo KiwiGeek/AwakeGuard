@@ -189,4 +189,5 @@ Same rules as a push to `release`.
 | ---- | ---- |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | CI pipeline |
 | [`Directory.Build.props`](Directory.Build.props) | Local default version; CI overrides via `/p:AwakeGuardVersion` |
+| [`AwakeGuard-win32/msbuild/AwakeGuard.Version.targets`](AwakeGuard-win32/msbuild/AwakeGuard.Version.targets) | Win32 manifest version patching (must be tracked; not under a `build/` folder) |
 | [`scripts/install.ps1`](scripts/install.ps1) | Installs from latest GitHub Release |
