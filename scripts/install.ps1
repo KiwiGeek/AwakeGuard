@@ -98,15 +98,43 @@ function Fail($message) {
 # ---------------------------------------------------------------------------
 
 function Get-MachineArchitecture {
-    # OSArchitecture returns the real OS arch even when this script runs
-    # inside a WOW64 (32-bit-on-64-bit) PowerShell host.
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-    switch ($arch) {
-        ([System.Runtime.InteropServices.Architecture]::X64)   { return 'x64'   }
-        ([System.Runtime.InteropServices.Architecture]::X86)   { return 'x86'   }
-        ([System.Runtime.InteropServices.Architecture]::Arm64) { return 'arm64' }
-        default { Fail "Unsupported architecture: $arch (need x64, x86, or ARM64)." }
+    # Two independent probes so a flaky one doesn't kill the install.
+    #
+    # 1. RuntimeInformation.OSArchitecture: framework-agnostic, returns the
+    #    true OS arch even inside a WOW64 PowerShell host. We cast to string
+    #    and dispatch on its name to avoid any enum-vs-enum switch subtlety.
+    #
+    # 2. PROCESSOR_ARCHITECTURE / PROCESSOR_ARCHITEW6432 env vars: ancient,
+    #    always populated on Windows, completely independent of .NET state.
+    #    PROCESSOR_ARCHITEW6432 is set only when a 32-bit process runs under
+    #    WOW64; when present it overrides PROCESSOR_ARCHITECTURE (which would
+    #    report x86 in that case).
+
+    $rtName = $null
+    try {
+        $rt = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+        if ($null -ne $rt) { $rtName = [string]$rt }
+    } catch {}
+
+    switch ($rtName) {
+        'X64'   { return 'x64'   }
+        'X86'   { return 'x86'   }
+        'Arm64' { return 'arm64' }
     }
+
+    $envArch = $env:PROCESSOR_ARCHITEW6432
+    if (-not $envArch) { $envArch = $env:PROCESSOR_ARCHITECTURE }
+
+    switch ($envArch) {
+        'AMD64' { return 'x64'   }
+        'x86'   { return 'x86'   }
+        'ARM64' { return 'arm64' }
+    }
+
+    Fail ("Could not determine the OS architecture. " +
+          "RuntimeInformation=[$rtName] " +
+          "PROCESSOR_ARCHITECTURE=[$env:PROCESSOR_ARCHITECTURE] " +
+          "PROCESSOR_ARCHITEW6432=[$env:PROCESSOR_ARCHITEW6432]")
 }
 
 function Get-WindowsBuildNumber {
