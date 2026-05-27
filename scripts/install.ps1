@@ -186,28 +186,47 @@ function Get-DotNetInfo {
 # Variant selection
 # ---------------------------------------------------------------------------
 
-function Show-VariantPicker([string]$arch, [bool]$dotnet10Possible) {
+function Show-VariantPicker([string]$arch, [bool]$dotnet10Possible, [bool]$hasDotNet10Runtime) {
+    # Build the menu dynamically so we never offer an option that wouldn't run.
+    $options = New-Object System.Collections.Generic.List[pscustomobject]
+    $options.Add([pscustomobject]@{
+        Variant = 'Win32'
+        Title   = "Native Win32 ($arch)"
+        Detail  = 'Smallest (~200 KB). No dependencies.'
+    })
+    if ($dotnet10Possible -and $hasDotNet10Runtime) {
+        $options.Add([pscustomobject]@{
+            Variant = 'FrameworkDependent'
+            Title   = ".NET 10 WPF, framework-dependent ($arch)"
+            Detail  = 'Modern Fluent UI. Uses the .NET 10 Desktop Runtime already installed.'
+        })
+    }
+    if ($dotnet10Possible) {
+        $options.Add([pscustomobject]@{
+            Variant = 'SelfContained'
+            Title   = ".NET 10 WPF, self-contained ($arch)"
+            Detail  = 'Modern Fluent UI. ~100 MB. Bundles the .NET 10 runtime.'
+        })
+    }
+
     Write-Host ''
     Write-Host 'Which AwakeGuard build do you want to install?' -ForegroundColor White
     Write-Host ''
-    Write-Host "  [1] Native Win32 ($arch)" -ForegroundColor White
-    Write-Host '        Smallest (~200 KB). No dependencies.' -ForegroundColor DarkGray
-    if ($dotnet10Possible) {
-        Write-Host "  [2] .NET 10 WPF, framework-dependent ($arch)" -ForegroundColor White
-        Write-Host '        Modern Fluent UI. Requires the .NET 10 Desktop Runtime.' -ForegroundColor DarkGray
-        Write-Host "  [3] .NET 10 WPF, self-contained ($arch)" -ForegroundColor White
-        Write-Host '        Modern Fluent UI. ~100 MB. Bundles the .NET 10 runtime.' -ForegroundColor DarkGray
+    for ($i = 0; $i -lt $options.Count; $i++) {
+        $n = $i + 1
+        Write-Host ("  [{0}] {1}" -f $n, $options[$i].Title) -ForegroundColor White
+        Write-Host ("        {0}" -f $options[$i].Detail)     -ForegroundColor DarkGray
     }
     Write-Host ''
 
+    $validKeys = (1..$options.Count) -join ', '
     while ($true) {
-        $reply = Read-Host 'Pick a number'
-        switch ($reply.Trim()) {
-            '1' { return 'Win32' }
-            '2' { if ($dotnet10Possible) { return 'FrameworkDependent' } else { Write-Warn "Option 2 isn't available on this machine." } }
-            '3' { if ($dotnet10Possible) { return 'SelfContained' }     else { Write-Warn "Option 3 isn't available on this machine." } }
-            default { Write-Warn 'Please type 1, 2, or 3.' }
+        $reply = (Read-Host "Pick a number ($validKeys)").Trim()
+        $idx = 0
+        if ([int]::TryParse($reply, [ref]$idx) -and $idx -ge 1 -and $idx -le $options.Count) {
+            return $options[$idx - 1].Variant
         }
+        Write-Warn "Please type one of: $validKeys."
     }
 }
 
@@ -223,12 +242,14 @@ function Resolve-Variant([string]$arch) {
         return 'Win32'
     }
 
+    $info = Get-DotNetInfo
+    $hasMatchingRuntime = $info.Available -and $info.Has10Desktop -and $info.Arch -eq $arch
+
     if ($Choose) {
-        return Show-VariantPicker -arch $arch -dotnet10Possible $true
+        return Show-VariantPicker -arch $arch -dotnet10Possible $true -hasDotNet10Runtime $hasMatchingRuntime
     }
 
-    $info = Get-DotNetInfo
-    if ($info.Available -and $info.Has10Desktop -and $info.Arch -eq $arch) {
+    if ($hasMatchingRuntime) {
         Write-Note ".NET 10 Desktop Runtime ($arch) detected. Installing the framework-dependent WPF build."
         return 'FrameworkDependent'
     }
@@ -236,9 +257,9 @@ function Resolve-Variant([string]$arch) {
     if ($info.Available -and $info.Has10Desktop -and $info.Arch -and $info.Arch -ne $arch) {
         Write-Note ".NET 10 Desktop Runtime is installed, but for $($info.Arch) instead of $arch. Asking you what to install:"
     } else {
-        Write-Note '.NET 10 Desktop Runtime not detected for this architecture. Asking you what to install:'
+        Write-Note '.NET 10 Desktop Runtime not detected. Asking you what to install:'
     }
-    return Show-VariantPicker -arch $arch -dotnet10Possible $true
+    return Show-VariantPicker -arch $arch -dotnet10Possible $true -hasDotNet10Runtime $false
 }
 
 # ---------------------------------------------------------------------------
@@ -522,19 +543,17 @@ function Start-Installed {
 
 function Show-TrayHint {
     $title = 'AwakeGuard is running'
-    $body  = @(
+
+    # Each entry is one paragraph. The MessageBox does its own word-wrap
+    # within the dialog width, so we must NOT insert mid-paragraph line
+    # breaks here -- those would render as forced wraps in awkward places.
+    $paragraphs = @(
         'AwakeGuard runs in the system tray, not as a window.'
-        ''
-        'Look in the notification area (bottom-right of the taskbar) for a small'
-        'circle icon. It is gray when off and green when active.'
-        ''
-        'If you do not see it, click the small up-arrow (^) next to the clock to'
-        'reveal hidden icons. You can drag it onto the always-visible row so it'
-        'stays put.'
-        ''
-        'Left-click the icon to toggle, right-click for the menu, or double-click'
-        'to open the settings window.'
-    ) -join "`r`n"
+        'Look in the notification area at the bottom-right of the taskbar for a small circle icon. It is gray when off and green when active.'
+        'If you do not see it, click the small up-arrow (^) next to the clock to reveal hidden icons. You can drag it onto the always-visible row to pin it.'
+        'Left-click the icon to toggle. Right-click for the menu. Double-click to open the settings window.'
+    )
+    $body = $paragraphs -join "`r`n`r`n"
 
     try {
         Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
@@ -549,8 +568,10 @@ function Show-TrayHint {
         Write-Host ''
         Write-Host "  $title" -ForegroundColor Cyan
         Write-Host ''
-        $body -split "`r`n" | ForEach-Object { Write-Host "  $_" }
-        Write-Host ''
+        foreach ($p in $paragraphs) {
+            Write-Host "  $p"
+            Write-Host ''
+        }
     }
 }
 
