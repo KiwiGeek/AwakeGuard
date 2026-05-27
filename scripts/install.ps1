@@ -378,6 +378,30 @@ function Install-Asset([pscustomobject]$asset, [string]$variant, [string]$arch) 
 }
 
 # ---------------------------------------------------------------------------
+# LICENSE drop
+# ---------------------------------------------------------------------------
+
+function Save-License {
+    # WPF zip artifacts ship with LICENSE inside, so for those it's already
+    # been extracted into $InstallDir. For the Win32 .exe and any future
+    # artifact that doesn't bundle it, fetch the canonical text from the repo.
+    $licensePath = Join-Path $InstallDir 'LICENSE'
+    if (Test-Path $licensePath) {
+        Write-Note 'LICENSE already present in install dir.'
+        return
+    }
+    $licenseUrl = "https://raw.githubusercontent.com/$($RepoOwner)/$($RepoName)/master/LICENSE"
+    try {
+        Invoke-WebRequest -Uri $licenseUrl -OutFile $licensePath -UseBasicParsing `
+            -Headers @{ 'User-Agent' = 'AwakeGuard-installer' }
+        Write-Note "Wrote $licensePath"
+    } catch {
+        # Not fatal -- the binary still runs without a sidecar LICENSE file.
+        Write-Warn "Could not download LICENSE: $($_.Exception.Message)"
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Uninstall registration (Apps & Features / Programs and Features)
 # ---------------------------------------------------------------------------
 
@@ -477,7 +501,7 @@ function Register-Uninstall([pscustomobject]$asset, [string]$variant, [string]$a
     $stringProps = @{
         DisplayName          = $displayName
         DisplayVersion       = $asset.Tag
-        Publisher            = 'KiwiGeek'
+        Publisher            = 'Joshua Penman'
         DisplayIcon          = $InstallExe
         InstallLocation      = $InstallDir
         UninstallString      = $uninstallCmd
@@ -590,6 +614,7 @@ $selectedVariant = Resolve-Variant -arch $arch
 $asset = Get-LatestReleaseAsset -variant $selectedVariant -arch $arch
 Install-Asset -asset $asset -variant $selectedVariant -arch $arch
 
+Save-License
 Write-UninstallScript
 Register-Uninstall -asset $asset -variant $selectedVariant -arch $arch
 

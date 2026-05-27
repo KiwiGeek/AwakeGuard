@@ -2,8 +2,48 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <verrsrc.h>
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
+/////////////////////////////////////////////////////////////////////////////
+// Version info -- shows up under Explorer -> Properties -> Details and is
+// the canonical place Windows reads LegalCopyright from. Keep the four-part
+// FILEVERSION / PRODUCTVERSION numbers in sync with the string forms below.
+/////////////////////////////////////////////////////////////////////////////
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    0,1,0,0
+ PRODUCTVERSION 0,1,0,0
+ FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS      VS_FF_DEBUG
+#else
+ FILEFLAGS      0
+#endif
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        // 040904B0 = U.S. English, Unicode (1200)
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "Joshua Penman"
+            VALUE "FileDescription",  "AwakeGuard - keep your PC awake on your terms"
+            VALUE "FileVersion",      "0.1.0.0"
+            VALUE "InternalName",     "AwakeGuard"
+            VALUE "LegalCopyright",   "Copyright (C) 2026 Joshua Penman. Licensed under GPL-3.0-or-later."
+            VALUE "OriginalFilename", "AwakeGuard.exe"
+            VALUE "ProductName",      "AwakeGuard"
+            VALUE "ProductVersion",   "0.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
 
 IDD_CONFIRM DIALOGEX 0, 0, 400, 190
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU

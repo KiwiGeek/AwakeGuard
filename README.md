@@ -145,7 +145,7 @@ warranty** to the extent permitted by law.
 
 ```
 AwakeGuard - keep your PC awake on your terms.
-Copyright (C) 2026 KiwiGeek
+Copyright (C) 2026 Joshua Penman
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

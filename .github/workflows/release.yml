@@ -96,6 +96,8 @@ jobs:
         run: |
           $publishDir = "AwakeGuard/publish/fx-${{ matrix.arch }}"
           if (-not (Test-Path $publishDir)) { throw "Publish output missing at $publishDir" }
+          # GPL-3.0 requires distributed copies ship with the license text.
+          Copy-Item LICENSE (Join-Path $publishDir 'LICENSE') -Force
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
           $zip = "artifacts/AwakeGuard-wpf-framework-dependent-win-${{ matrix.arch }}.zip"
           Compress-Archive -Path "$publishDir/*" -DestinationPath $zip -Force
@@ -145,6 +147,8 @@ jobs:
         run: |
           $publishDir = "AwakeGuard/publish/sc-${{ matrix.arch }}"
           if (-not (Test-Path $publishDir)) { throw "Publish output missing at $publishDir" }
+          # GPL-3.0 requires distributed copies ship with the license text.
+          Copy-Item LICENSE (Join-Path $publishDir 'LICENSE') -Force
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
           $zip = "artifacts/AwakeGuard-wpf-self-contained-win-${{ matrix.arch }}.zip"
           Compress-Archive -Path "$publishDir/*" -DestinationPath $zip -Force
@@ -169,6 +173,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
+      - name: Checkout (for LICENSE)
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -180,6 +187,9 @@ jobs:
           set -euo pipefail
           mkdir -p release-files
           find artifacts -type f \( -name '*.exe' -o -name '*.zip' \) -exec cp -v {} release-files/ \;
+          # Also attach the standalone LICENSE so anyone grabbing the .exe
+          # variant from the release page has the GPL text right there.
+          cp -v LICENSE release-files/LICENSE
           ls -la release-files
 
       - name: Compute release metadata

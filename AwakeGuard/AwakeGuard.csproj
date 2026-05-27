@@ -9,6 +9,22 @@
     <AssemblyName>AwakeGuard</AssemblyName>
     <RootNamespace>AwakeGuard</RootNamespace>
     <Description>System tray app to prevent sleep and display lock for a set duration.</Description>
+
+    <!--
+      Assembly metadata. The .NET SDK turns these MSBuild properties into
+      [AssemblyTitle] / [AssemblyCompany] / [AssemblyCopyright] / etc.
+      attributes on the produced AwakeGuard.dll/exe, which show up under
+      Properties -> Details in Explorer.
+    -->
+    <Product>AwakeGuard</Product>
+    <Authors>Joshua Penman</Authors>
+    <Company>Joshua Penman</Company>
+    <Copyright>Copyright (C) 2026 Joshua Penman. Licensed under GPL-3.0-or-later.</Copyright>
+    <Version>0.1.0</Version>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/KiwiGeek/AwakeGuard</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KiwiGeek/AwakeGuard</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
