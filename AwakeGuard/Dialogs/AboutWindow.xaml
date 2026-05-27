@@ -1,0 +1,83 @@
+<ui:FluentWindow x:Class="AwakeGuard.Dialogs.AboutWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="About AwakeGuard"
+                 Width="400"
+                 Height="400"
+                 MinWidth="360"
+                 MinHeight="360"
+                 ExtendsContentIntoTitleBar="True"
+                 ResizeMode="NoResize"
+                 ShowInTaskbar="False"
+                 WindowBackdropType="Mica"
+                 WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Title="About AwakeGuard"
+                     Grid.Row="0"
+                     ShowClose="True"
+                     ShowMaximize="False"
+                     ShowMinimize="False" />
+
+        <Grid Grid.Row="1"
+              Margin="24,16,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <TextBlock x:Name="TitleText"
+                           Margin="0,0,0,10"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="AwakeGuard" />
+                <TextBlock x:Name="DescriptionText"
+                           Margin="0,0,0,12"
+                           Opacity="0.9"
+                           TextWrapping="Wrap" />
+                <TextBlock x:Name="VersionText"
+                           Margin="0,0,0,16"
+                           Opacity="0.75" />
+
+                <TextBlock Margin="0,0,0,8"
+                           FontWeight="SemiBold"
+                           Text="Credits" />
+                <TextBlock Margin="0,0,0,6"
+                           Opacity="0.85">
+                    <Hyperlink NavigateUri="https://github.com/kiwigeek"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        @kiwigeek
+                    </Hyperlink>
+                    <Run Text=" on GitHub" />
+                </TextBlock>
+                <TextBlock Margin="0,0,0,6" Opacity="0.85">
+                    <Hyperlink NavigateUri="https://joshua.penman.dev"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        https://joshua.penman.dev
+                    </Hyperlink>
+                </TextBlock>
+                <TextBlock Opacity="0.85">
+                    <Hyperlink NavigateUri="https://ko-fi.com/joshpenman"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        Support on Ko-fi
+                    </Hyperlink>
+                </TextBlock>
+            </StackPanel>
+
+            <ui:Button Grid.Row="1"
+                       Margin="0,16,0,0"
+                       Padding="24,8"
+                       HorizontalAlignment="Right"
+                       Appearance="Primary"
+                       Click="Ok_Click"
+                       Content="OK"
+                       IsDefault="True" />
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

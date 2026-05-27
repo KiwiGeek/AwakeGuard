@@ -1,0 +1,49 @@
+###############################################################################
+# Default: normalize line endings on commit.
+###############################################################################
+* text=auto
+
+###############################################################################
+# Windows shell / batch files should stay CRLF on checkout so they execute
+# correctly on Windows regardless of core.autocrlf.
+###############################################################################
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+###############################################################################
+# Unix shell scripts should stay LF.
+###############################################################################
+*.sh    text eol=lf
+
+###############################################################################
+# Source code
+###############################################################################
+*.cs        text diff=csharp
+*.cpp       text diff=cpp
+*.c         text diff=cpp
+*.h         text diff=cpp
+*.hpp       text diff=cpp
+*.xaml      text
+*.csproj    text
+*.vcxproj   text
+*.sln       text eol=crlf
+*.manifest  text
+*.rc        text
+*.json      text
+*.md        text
+*.yml       text
+*.yaml      text
+
+###############################################################################
+# Binary assets
+###############################################################################
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.pdf   binary
+*.zip   binary
+*.exe   binary
+*.dll   binary
+*.pdb   binary

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11806.211 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwakeGuard", "AwakeGuard.csproj", "{D0FA8BAF-59A8-9E6A-C935-FBBB949DBE18}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0FA8BAF-59A8-9E6A-C935-FBBB949DBE18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0FA8BAF-59A8-9E6A-C935-FBBB949DBE18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0FA8BAF-59A8-9E6A-C935-FBBB949DBE18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0FA8BAF-59A8-9E6A-C935-FBBB949DBE18}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7798E8A2-D9DD-4826-A786-A062B396E01D}
+	EndGlobalSection
+EndGlobal
