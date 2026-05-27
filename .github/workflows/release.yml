@@ -15,11 +15,21 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 1. Native Win32 (C++17) — single .exe, no dependencies
+  # 1. Native Win32 (C++17) — single .exe, no dependencies. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-win32:
-    name: Build native Win32 (x64)
+    name: Native Win32 (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            platform: x64
+          - arch: x86
+            platform: Win32
+          - arch: arm64
+            platform: ARM64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,35 +37,40 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build (Release | x64)
+      - name: Build (Release | ${{ matrix.platform }})
         working-directory: AwakeGuard-win32
-        run: msbuild AwakeGuard.sln /p:Configuration=Release /p:Platform=x64 /m /nologo
+        run: msbuild AwakeGuard.sln /p:Configuration=Release /p:Platform=${{ matrix.platform }} /m /nologo
 
       - name: Stage artifact
         shell: pwsh
         run: |
-          $src = "AwakeGuard-win32/bin/Release/AwakeGuard.exe"
+          $src = "AwakeGuard-win32/bin/${{ matrix.platform }}/Release/AwakeGuard.exe"
           if (-not (Test-Path $src)) {
-            $src = (Get-ChildItem -Path AwakeGuard-win32 -Recurse -Filter AwakeGuard.exe | Select-Object -First 1).FullName
+            Write-Host "Did not find $src. Build tree:"
+            Get-ChildItem -Path AwakeGuard-win32 -Recurse -Filter AwakeGuard.exe | ForEach-Object { Write-Host "  $($_.FullName)" }
+            throw "AwakeGuard.exe not found for platform ${{ matrix.platform }}"
           }
-          if (-not $src) { throw "Could not locate AwakeGuard.exe after build." }
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          Copy-Item $src "artifacts/AwakeGuard-win32-x64.exe" -Force
+          Copy-Item $src "artifacts/AwakeGuard-win32-${{ matrix.arch }}.exe" -Force
           Get-ChildItem artifacts | Format-Table -AutoSize
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AwakeGuard-win32-x64
-          path: artifacts/AwakeGuard-win32-x64.exe
+          name: AwakeGuard-win32-${{ matrix.arch }}
+          path: artifacts/AwakeGuard-win32-${{ matrix.arch }}.exe
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 2. WPF .NET 10 — framework-dependent (needs .NET 10 Desktop Runtime)
+  # 2. WPF .NET 10 — framework-dependent. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-wpf-framework-dependent:
-    name: Build WPF (.NET 10, framework-dependent)
+    name: WPF framework-dependent (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,40 +80,44 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Publish (framework-dependent, win-x64)
+      - name: Publish (framework-dependent, win-${{ matrix.arch }})
         working-directory: AwakeGuard
         run: >
           dotnet publish AwakeGuard.csproj
           -c Release
-          -r win-x64
+          -r win-${{ matrix.arch }}
           --self-contained false
           -p:PublishSingleFile=true
           -p:DebugType=embedded
-          -o publish/framework-dependent
+          -o publish/fx-${{ matrix.arch }}
 
       - name: Package artifact
         shell: pwsh
         run: |
-          $publishDir = "AwakeGuard/publish/framework-dependent"
+          $publishDir = "AwakeGuard/publish/fx-${{ matrix.arch }}"
           if (-not (Test-Path $publishDir)) { throw "Publish output missing at $publishDir" }
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          $zip = "artifacts/AwakeGuard-wpf-framework-dependent-win-x64.zip"
+          $zip = "artifacts/AwakeGuard-wpf-framework-dependent-win-${{ matrix.arch }}.zip"
           Compress-Archive -Path "$publishDir/*" -DestinationPath $zip -Force
           Get-ChildItem artifacts | Format-Table -AutoSize
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AwakeGuard-wpf-framework-dependent-win-x64
-          path: artifacts/AwakeGuard-wpf-framework-dependent-win-x64.zip
+          name: AwakeGuard-wpf-framework-dependent-win-${{ matrix.arch }}
+          path: artifacts/AwakeGuard-wpf-framework-dependent-win-${{ matrix.arch }}.zip
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 3. WPF .NET 10 — self-contained single file (no .NET install needed)
+  # 3. WPF .NET 10 — self-contained single file. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-wpf-self-contained:
-    name: Build WPF (.NET 10, self-contained)
+    name: WPF self-contained (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,38 +127,38 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Publish (self-contained, win-x64)
+      - name: Publish (self-contained, win-${{ matrix.arch }})
         working-directory: AwakeGuard
         run: >
           dotnet publish AwakeGuard.csproj
           -c Release
-          -r win-x64
+          -r win-${{ matrix.arch }}
           --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:DebugType=embedded
-          -o publish/self-contained
+          -o publish/sc-${{ matrix.arch }}
 
       - name: Package artifact
         shell: pwsh
         run: |
-          $publishDir = "AwakeGuard/publish/self-contained"
+          $publishDir = "AwakeGuard/publish/sc-${{ matrix.arch }}"
           if (-not (Test-Path $publishDir)) { throw "Publish output missing at $publishDir" }
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          $zip = "artifacts/AwakeGuard-wpf-self-contained-win-x64.zip"
+          $zip = "artifacts/AwakeGuard-wpf-self-contained-win-${{ matrix.arch }}.zip"
           Compress-Archive -Path "$publishDir/*" -DestinationPath $zip -Force
           Get-ChildItem artifacts | Format-Table -AutoSize
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AwakeGuard-wpf-self-contained-win-x64
-          path: artifacts/AwakeGuard-wpf-self-contained-win-x64.zip
+          name: AwakeGuard-wpf-self-contained-win-${{ matrix.arch }}
+          path: artifacts/AwakeGuard-wpf-self-contained-win-${{ matrix.arch }}.zip
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 4. Publish a GitHub Release with all three artifacts attached
+  # 4. Publish a GitHub Release with all nine artifacts attached.
   # ---------------------------------------------------------------------------
   release:
     name: Publish GitHub Release

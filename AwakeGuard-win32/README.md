@@ -8,18 +8,20 @@ Native Win32 reimplementation of AwakeGuard with no third-party dependencies —
 
 1. Install [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) with the **Desktop development with C++** workload.
 2. Open `AwakeGuard.sln`.
-3. Set configuration to **Release | x64**.
+3. Pick the platform you want: **Release | x64**, **Release | Win32** (32-bit), or **Release | ARM64**.
 4. Build → Build Solution.
 
-Output: `bin\Release\AwakeGuard.exe`
+Output: `bin\<platform>\Release\AwakeGuard.exe`
 
 ### Option B: Command line
 
-Double-click `build.bat`, or from a normal Command Prompt:
+From a normal Command Prompt:
 
 ```cmd
-cd C:\Users\joshua\AwakeGuard-win32
-build.bat
+cd AwakeGuard-win32
+build.bat            REM defaults to x64
+build.bat Win32      REM 32-bit
+build.bat ARM64      REM ARM64
 ```
 
 ### Prerequisites
