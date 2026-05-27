@@ -319,6 +319,132 @@ function Install-Asset([pscustomobject]$asset, [string]$variant, [string]$arch) 
 }
 
 # ---------------------------------------------------------------------------
+# Uninstall registration (Apps & Features / Programs and Features)
+# ---------------------------------------------------------------------------
+
+# The uninstall.ps1 script lives next to the exe and is referenced by the
+# UninstallString registry value. It is intentionally self-contained so it can
+# be invoked by Windows without our installer module.
+$script:UninstallScriptBody = @'
+[CmdletBinding()]
+param([switch]$Silent)
+
+$ErrorActionPreference = 'SilentlyContinue'
+
+$AppName      = 'AwakeGuard'
+$InstallDir   = Join-Path $env:LOCALAPPDATA $AppName
+$ShortcutPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\AwakeGuard.lnk'
+$RunKeyPath   = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AwakeGuard'
+
+if (-not $Silent) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        $reply = [System.Windows.Forms.MessageBox]::Show(
+            "Uninstall AwakeGuard?`r`n`r`nThis removes the application and its settings.",
+            'Uninstall AwakeGuard',
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Question)
+        if ($reply -ne [System.Windows.Forms.DialogResult]::Yes) { exit 1 }
+    } catch {
+        # If WinForms is unavailable, just proceed silently.
+    }
+}
+
+Get-Process -Name 'AwakeGuard' -ErrorAction SilentlyContinue | ForEach-Object {
+    try { $_.Kill() } catch {}
+}
+Start-Sleep -Milliseconds 500
+
+Remove-ItemProperty -Path $RunKeyPath -Name $AppName -ErrorAction SilentlyContinue
+Remove-Item -Path $ShortcutPath -Force -ErrorAction SilentlyContinue
+Remove-Item -Path $UninstallKey -Recurse -Force -ErrorAction SilentlyContinue
+
+# We are currently executing from inside $InstallDir, so we cannot delete it
+# from here. Spawn a detached .bat file that waits a couple of seconds for
+# this PowerShell process to exit, then removes the whole tree and deletes
+# itself.
+$batPath = Join-Path $env:TEMP ('awakeguard-cleanup-' + [Guid]::NewGuid().ToString('N') + '.bat')
+$batBody = @"
+@echo off
+ping 127.0.0.1 -n 3 >nul
+taskkill /IM AwakeGuard.exe /F >nul 2>&1
+rd /s /q "$InstallDir"
+del "%~f0"
+"@
+Set-Content -Path $batPath -Value $batBody -Encoding ASCII
+Start-Process -FilePath $batPath -WindowStyle Hidden
+
+if (-not $Silent) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        [void][System.Windows.Forms.MessageBox]::Show(
+            'AwakeGuard has been uninstalled.',
+            'AwakeGuard',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information)
+    } catch {}
+}
+'@
+
+function Write-UninstallScript {
+    $path = Join-Path $script:InstallDir 'uninstall.ps1'
+    Set-Content -Path $path -Value $script:UninstallScriptBody -Encoding UTF8
+    Write-Note "Wrote $path"
+}
+
+function Register-Uninstall([pscustomobject]$asset, [string]$variant, [string]$arch) {
+    $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AwakeGuard'
+
+    # Recreate from scratch so stale values from previous installs don't linger.
+    Remove-Item -Path $regPath -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -Path $regPath -Force | Out-Null
+
+    $uninstallScriptPath = Join-Path $script:InstallDir 'uninstall.ps1'
+    $uninstallCmd      = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstallScriptPath`""
+    $quietUninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstallScriptPath`" -Silent"
+
+    $sizeBytes = (Get-ChildItem -Path $script:InstallDir -Recurse -File -ErrorAction SilentlyContinue |
+        Measure-Object -Property Length -Sum).Sum
+    $sizeKb = if ($sizeBytes) { [int]($sizeBytes / 1024) } else { 0 }
+
+    $displayName = switch ($variant) {
+        'Win32'              { "AwakeGuard ($arch, native)" }
+        'FrameworkDependent' { "AwakeGuard ($arch, WPF .NET 10)" }
+        'SelfContained'      { "AwakeGuard ($arch, WPF .NET 10 self-contained)" }
+        default              { "AwakeGuard ($arch)" }
+    }
+
+    $stringProps = @{
+        DisplayName          = $displayName
+        DisplayVersion       = $asset.Tag
+        Publisher            = 'KiwiGeek'
+        DisplayIcon          = $script:InstallExe
+        InstallLocation      = $script:InstallDir
+        UninstallString      = $uninstallCmd
+        QuietUninstallString = $quietUninstallCmd
+        InstallDate          = (Get-Date).ToString('yyyyMMdd')
+        URLInfoAbout         = "https://github.com/$($script:RepoOwner)/$($script:RepoName)"
+        URLUpdateInfo        = "https://github.com/$($script:RepoOwner)/$($script:RepoName)/releases"
+        Comments             = "$variant build for $arch"
+    }
+    foreach ($k in $stringProps.Keys) {
+        New-ItemProperty -Path $regPath -Name $k -Value $stringProps[$k] -PropertyType String -Force | Out-Null
+    }
+
+    $dwordProps = @{
+        NoModify      = 1
+        NoRepair      = 1
+        EstimatedSize = $sizeKb
+    }
+    foreach ($k in $dwordProps.Keys) {
+        New-ItemProperty -Path $regPath -Name $k -Value $dwordProps[$k] -PropertyType DWord -Force | Out-Null
+    }
+
+    Write-Note 'Registered under Apps & Features (per-user).'
+}
+
+# ---------------------------------------------------------------------------
 # Start Menu shortcut
 # ---------------------------------------------------------------------------
 
@@ -404,6 +530,9 @@ Write-Note "Detected architecture: $arch"
 $selectedVariant = Resolve-Variant -arch $arch
 $asset = Get-LatestReleaseAsset -variant $selectedVariant -arch $arch
 Install-Asset -asset $asset -variant $selectedVariant -arch $arch
+
+Write-UninstallScript
+Register-Uninstall -asset $asset -variant $selectedVariant -arch $arch
 
 New-StartMenuShortcut
 

@@ -43,7 +43,11 @@ The installer:
    - WPF framework-dependent (small, needs .NET 10 Desktop Runtime)
    - WPF self-contained (~100 MB, bundles the runtime)
 5. Downloads the right asset from the latest GitHub Release, installs it to
-   `%LOCALAPPDATA%\AwakeGuard`, creates a Start Menu shortcut, and launches it.
+   `%LOCALAPPDATA%\AwakeGuard`, creates a Start Menu shortcut, registers AwakeGuard
+   under **Apps & Features** (per-user), and launches it.
+
+To remove it later: **Settings → Apps → Installed apps → AwakeGuard → Uninstall**,
+or just run `%LOCALAPPDATA%\AwakeGuard\uninstall.ps1`.
 
 ### Optional flags
 
