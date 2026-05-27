@@ -64,9 +64,16 @@ To pass flags through `irm | iex` you need the scriptblock form:
 | `-Force`                                       | Don't prompt when overwriting an existing install or killing a running app. |
 | `-NoLaunch`                                    | Install but don't start AwakeGuard.                                       |
 
+## Releasing
+
+See **[RELEASING.md](RELEASING.md)** for the full deploy checklist (tag →
+fast-forward `release` → CI → verify GitHub Release). Summary: tag the commit
+on `master` as `vX.Y.Z`, push the tag, then `git merge --ff-only master` on
+`release` and push `release`.
+
 ## Build artifacts produced by CI
 
-Pushing to the `release` branch triggers
+Pushing to the `release` branch (with a version tag at `HEAD`) triggers
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which
 produces **nine** artifacts (three variants × three architectures):
 
@@ -126,6 +133,7 @@ AwakeGuard/                  WPF / .NET 10 implementation
 AwakeGuard-win32/            Native Win32 / C++17 implementation
 scripts/
   install.ps1                The irm | iex one-liner installer
+RELEASING.md                 Deploy checklist (read this when shipping)
 .github/workflows/
   release.yml                Builds all 9 artifacts on push to `release`
 .gitignore                   Combined VS + CMake ignores

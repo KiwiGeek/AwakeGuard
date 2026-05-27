@@ -3,6 +3,9 @@
 #include "resource.h"
 #include "ui.h"
 #include "util.h"
+#include "version.h"
+
+#include <cstdio>
 
 namespace {
 
@@ -106,7 +109,14 @@ void LayoutAboutWindow(HWND window) {
         true);
     y += 58;
 
-    CreateAboutLabel(window, margin, y, contentWidth, 18, L"Version 1.0.0", UiBodyFont(), true);
+    wchar_t versionLine[32];
+    swprintf_s(
+        versionLine,
+        L"Version %u.%u.%u",
+        AWAKEGUARD_VERSION_MAJOR,
+        AWAKEGUARD_VERSION_MINOR,
+        AWAKEGUARD_VERSION_PATCH);
+    CreateAboutLabel(window, margin, y, contentWidth, 18, versionLine, UiBodyFont(), true);
     y += 28;
 
     CreateAboutLabel(window, margin, y, contentWidth, 18, L"Credits", UiSectionFont(), false);

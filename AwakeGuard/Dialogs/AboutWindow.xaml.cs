@@ -26,7 +26,20 @@ public partial class AboutWindow : FluentWindow
 
     private static string GetVersionText()
     {
+        var informational = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            var plus = informational.IndexOf('+');
+            return plus >= 0 ? informational[..plus] : informational;
+        }
+
         var version = Assembly.GetExecutingAssembly().GetName().Version;
-        return version is null ? "1.0.0" : $"{version.Major}.{version.Minor}.{version.Build}";
+        if (version is null)
+            return "dev";
+
+        var patch = version.Build >= 0 ? version.Build : 0;
+        return $"{version.Major}.{version.Minor}.{patch}";
     }
 }

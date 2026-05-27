@@ -1,4 +1,5 @@
 #include "resource.h"
+#include "version.h"
 
 #include <windows.h>
 #include <commctrl.h>
@@ -9,11 +10,11 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 /////////////////////////////////////////////////////////////////////////////
 // Version info -- shows up under Explorer -> Properties -> Details and is
 // the canonical place Windows reads LegalCopyright from. Keep the four-part
-// FILEVERSION / PRODUCTVERSION numbers in sync with the string forms below.
+// Version numbers come from version.h / MSBuild (see Directory.Build.props).
 /////////////////////////////////////////////////////////////////////////////
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    0,1,0,0
- PRODUCTVERSION 0,1,0,0
+ FILEVERSION    AWAKEGUARD_VERSION_MAJOR,AWAKEGUARD_VERSION_MINOR,AWAKEGUARD_VERSION_PATCH,AWAKEGUARD_VERSION_REVISION
+ PRODUCTVERSION AWAKEGUARD_VERSION_MAJOR,AWAKEGUARD_VERSION_MINOR,AWAKEGUARD_VERSION_PATCH,AWAKEGUARD_VERSION_REVISION
  FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
  FILEFLAGS      VS_FF_DEBUG
@@ -31,12 +32,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "Joshua Penman"
             VALUE "FileDescription",  "AwakeGuard - keep your PC awake on your terms"
-            VALUE "FileVersion",      "0.1.0.0"
+            VALUE "FileVersion",      AWAKEGUARD_FILE_VERSION_STR
             VALUE "InternalName",     "AwakeGuard"
             VALUE "LegalCopyright",   "Copyright (C) 2026 Joshua Penman. Licensed under GPL-3.0-or-later."
             VALUE "OriginalFilename", "AwakeGuard.exe"
             VALUE "ProductName",      "AwakeGuard"
-            VALUE "ProductVersion",   "0.1.0.0"
+            VALUE "ProductVersion",   AWAKEGUARD_FILE_VERSION_STR
         END
     END
     BLOCK "VarFileInfo"

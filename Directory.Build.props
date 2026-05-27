@@ -1,0 +1,25 @@
+<Project>
+  <!--
+    Default version for local builds. Release CI overrides AwakeGuardVersion from the
+    exact git tag at release branch HEAD (e.g. v0.1.1 -> 0.1.1).
+  -->
+  <PropertyGroup>
+    <AwakeGuardVersion Condition="'$(AwakeGuardVersion)' == ''">0.1.1</AwakeGuardVersion>
+    <Version Condition="'$(Version)' == ''">$(AwakeGuardVersion)</Version>
+    <FileVersion Condition="'$(FileVersion)' == ''">$(AwakeGuardVersion).0</FileVersion>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AwakeGuardVersion)</InformationalVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AwakeGuardVersionMajor>$([System.Version]::Parse('$(AwakeGuardVersion)').Major)</AwakeGuardVersionMajor>
+    <AwakeGuardVersionMinor>$([System.Version]::Parse('$(AwakeGuardVersion)').Minor)</AwakeGuardVersionMinor>
+    <AwakeGuardVersionPatch>$([System.Version]::Parse('$(AwakeGuardVersion)').Build)</AwakeGuardVersionPatch>
+    <AwakeGuardVersionRevision>$([System.Version]::Parse('$(AwakeGuardVersion)').Revision)</AwakeGuardVersionRevision>
+    <AwakeGuardFileRevision Condition="$(AwakeGuardVersionRevision) &lt; 0">0</AwakeGuardFileRevision>
+    <AwakeGuardFileRevision Condition="$(AwakeGuardVersionRevision) &gt;= 0">$(AwakeGuardVersionRevision)</AwakeGuardFileRevision>
+    <AwakeGuardFileVersionString>$(AwakeGuardVersion).0</AwakeGuardFileVersionString>
+    <AwakeGuardManifestVersion>$(AwakeGuardFileVersionString)</AwakeGuardManifestVersion>
+    <AwakeGuardNativeVersionDefines>AWAKEGUARD_VERSION_MAJOR=$(AwakeGuardVersionMajor);AWAKEGUARD_VERSION_MINOR=$(AwakeGuardVersionMinor);AWAKEGUARD_VERSION_PATCH=$(AwakeGuardVersionPatch);AWAKEGUARD_VERSION_REVISION=$(AwakeGuardFileRevision)</AwakeGuardNativeVersionDefines>
+    <AwakeGuardResourceVersionDefines>$(AwakeGuardNativeVersionDefines);AWAKEGUARD_FILE_VERSION_STR=\&quot;$(AwakeGuardFileVersionString)\&quot;</AwakeGuardResourceVersionDefines>
+  </PropertyGroup>
+</Project>

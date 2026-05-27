@@ -15,10 +15,63 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Require an exact SemVer tag (vX.Y.Z) on release branch HEAD; version flows to all builds.
+  # ---------------------------------------------------------------------------
+  resolve-version:
+    name: Resolve version from tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      semver: ${{ steps.version.outputs.semver }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require version tag at HEAD
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != "refs/heads/release" ]; then
+            echo "::error::Release builds must run on the release branch (got ${GITHUB_REF})."
+            exit 1
+          fi
+
+          tag="$(git describe --exact-match --tags HEAD 2>/dev/null || true)"
+          if [ -z "$tag" ]; then
+            echo "::error::release branch HEAD must have an exact version tag (e.g. v0.1.1) before fast-forward."
+            echo "::error::Tag master, push the tag, then fast-forward release to that commit."
+            exit 1
+          fi
+
+          case "$tag" in
+            v[0-9]*.[0-9]*.[0-9]*)
+              semver="${tag#v}"
+              ;;
+            *)
+              echo "::error::Version tag must look like vMAJOR.MINOR.PATCH (got ${tag})."
+              exit 1
+              ;;
+          esac
+
+          if ! [[ "$semver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag ${tag} did not resolve to a three-part version (got ${semver})."
+            exit 1
+          fi
+
+          echo "Resolved ${tag} -> ${semver}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "semver=${semver}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
   # 1. Native Win32 (C++17) — single .exe, no dependencies. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-win32:
     name: Native Win32 (${{ matrix.arch }})
+    needs: resolve-version
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -39,7 +92,12 @@ jobs:
 
       - name: Build (Release | ${{ matrix.platform }})
         working-directory: AwakeGuard-win32
-        run: msbuild AwakeGuard.sln /p:Configuration=Release /p:Platform=${{ matrix.platform }} /m /nologo
+        run: >
+          msbuild AwakeGuard.sln
+          /p:Configuration=Release
+          /p:Platform=${{ matrix.platform }}
+          /p:AwakeGuardVersion=${{ needs.resolve-version.outputs.semver }}
+          /m /nologo
 
       - name: Stage artifact
         shell: pwsh
@@ -66,6 +124,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-wpf-framework-dependent:
     name: WPF framework-dependent (${{ matrix.arch }})
+    needs: resolve-version
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -89,6 +148,8 @@ jobs:
           --self-contained false
           -p:PublishSingleFile=true
           -p:DebugType=embedded
+          -p:AwakeGuardVersion=${{ needs.resolve-version.outputs.semver }}
+          -p:Version=${{ needs.resolve-version.outputs.semver }}
           -o publish/fx-${{ matrix.arch }}
 
       - name: Package artifact
@@ -115,6 +176,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-wpf-self-contained:
     name: WPF self-contained (${{ matrix.arch }})
+    needs: resolve-version
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -140,6 +202,8 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:DebugType=embedded
+          -p:AwakeGuardVersion=${{ needs.resolve-version.outputs.semver }}
+          -p:Version=${{ needs.resolve-version.outputs.semver }}
           -o publish/sc-${{ matrix.arch }}
 
       - name: Package artifact
@@ -167,6 +231,7 @@ jobs:
   release:
     name: Publish GitHub Release
     needs:
+      - resolve-version
       - build-win32
       - build-wpf-framework-dependent
       - build-wpf-self-contained
@@ -192,19 +257,11 @@ jobs:
           cp -v LICENSE release-files/LICENSE
           ls -la release-files
 
-      - name: Compute release metadata
-        id: meta
-        shell: bash
-        run: |
-          tag="build-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "name=AwakeGuard $tag" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: ${{ steps.meta.outputs.name }}
+          tag_name: ${{ needs.resolve-version.outputs.tag }}
+          name: AwakeGuard ${{ needs.resolve-version.outputs.semver }}
           generate_release_notes: true
           files: release-files/*
           draft: false
