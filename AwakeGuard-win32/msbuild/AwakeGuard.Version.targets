@@ -5,13 +5,15 @@
     <AwakeGuardPatchedManifest>$(IntDir)AwakeGuard.app.manifest</AwakeGuardPatchedManifest>
   </PropertyGroup>
 
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalManifestFiles>$(AwakeGuardPatchedManifest)</AdditionalManifestFiles>
+    </Link>
+  </ItemDefinitionGroup>
+
   <Target Name="AwakeGuardPrepareManifest" BeforeTargets="Link">
+    <MakeDir Directories="$(IntDir)" Condition="!Exists('$(IntDir)')" />
     <Copy SourceFiles="$(ProjectDir)app.manifest" DestinationFiles="$(AwakeGuardPatchedManifest)" />
     <Exec Command="powershell -NoProfile -Command &quot;(Get-Content -LiteralPath '$(AwakeGuardPatchedManifest)') -replace 'AWAKEGUARD_MANIFEST_VERSION', '$(AwakeGuardManifestVersion)' | Set-Content -LiteralPath '$(AwakeGuardPatchedManifest)' -Encoding UTF8&quot;" />
-    <ItemDefinitionGroup>
-      <Link>
-        <AdditionalManifestFiles>$(AwakeGuardPatchedManifest)</AdditionalManifestFiles>
-      </Link>
-    </ItemDefinitionGroup>
   </Target>
 </Project>
