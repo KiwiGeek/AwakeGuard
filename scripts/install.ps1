@@ -34,28 +34,38 @@
     # Pass parameters via the scriptblock form:
     & ([scriptblock]::Create((irm https://raw.githubusercontent.com/KiwiGeek/AwakeGuard/master/scripts/install.ps1))) -Variant Win32 -Force
 #>
-[CmdletBinding()]
-param(
-    [ValidateSet('Win32', 'FrameworkDependent', 'SelfContained')]
-    [string]$Variant,
-    [switch]$Choose,
-    [switch]$Force,
-    [switch]$NoLaunch
-)
+
+# Everything below runs inside `& { ... } @args` so that, when this script is
+# fed to Invoke-Expression via `irm ... | iex`, the param block lives in its
+# own scope. Without this wrapper, any pre-existing $Variant / $Force /
+# $Choose / $NoLaunch variable in the caller's shell would either short-circuit
+# parameter binding or fail the [ValidateSet] check. `@args` forwards any
+# positional/named arguments through when the script is invoked via the
+# `& ([scriptblock]::Create((irm ...))) -Foo Bar` form.
+
+& {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('Win32', 'FrameworkDependent', 'SelfContained')]
+        [string]$Variant,
+        [switch]$Choose,
+        [switch]$Force,
+        [switch]$NoLaunch
+    )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
 
-$script:RepoOwner  = 'KiwiGeek'
-$script:RepoName   = 'AwakeGuard'
-$script:AppName    = 'AwakeGuard'
-$script:ExeName    = 'AwakeGuard.exe'
-$script:InstallDir = Join-Path $env:LOCALAPPDATA $script:AppName
-$script:InstallExe = Join-Path $script:InstallDir $script:ExeName
-$script:MetaFile   = Join-Path $script:InstallDir 'install.json'
+$RepoOwner  = 'KiwiGeek'
+$RepoName   = 'AwakeGuard'
+$AppName    = 'AwakeGuard'
+$ExeName    = 'AwakeGuard.exe'
+$InstallDir = Join-Path $env:LOCALAPPDATA $AppName
+$InstallExe = Join-Path $InstallDir $ExeName
+$MetaFile   = Join-Path $InstallDir 'install.json'
 
 # Win 10 1809 = build 17763 is the official .NET 10 minimum.
-$script:MinDotNet10Build = 17763
+$MinDotNet10Build = 17763
 
 # ---------------------------------------------------------------------------
 # Console helpers
@@ -108,7 +118,7 @@ function Get-WindowsBuildNumber {
 }
 
 function Test-WindowsSupportsDotNet10 {
-    return (Get-WindowsBuildNumber) -ge $script:MinDotNet10Build
+    return (Get-WindowsBuildNumber) -ge $MinDotNet10Build
 }
 
 function Get-DotNetInfo {
@@ -181,7 +191,7 @@ function Resolve-Variant([string]$arch) {
 
     if (-not (Test-WindowsSupportsDotNet10)) {
         $build = Get-WindowsBuildNumber
-        Write-Note "Windows build $build is older than $($script:MinDotNet10Build) (Win 10 1809). Installing the Win32 build."
+        Write-Note "Windows build $build is older than $($MinDotNet10Build) (Win 10 1809). Installing the Win32 build."
         return 'Win32'
     }
 
@@ -209,7 +219,7 @@ function Resolve-Variant([string]$arch) {
 
 function Get-LatestReleaseAsset([string]$variant, [string]$arch) {
     Write-Step 'Looking up the latest AwakeGuard release...'
-    $apiUrl  = "https://api.github.com/repos/$($script:RepoOwner)/$($script:RepoName)/releases/latest"
+    $apiUrl  = "https://api.github.com/repos/$($RepoOwner)/$($RepoName)/releases/latest"
     $headers = @{ 'User-Agent' = 'AwakeGuard-installer' }
     if ($env:GITHUB_TOKEN) { $headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
 
@@ -261,8 +271,8 @@ function Stop-RunningAwakeGuard {
 }
 
 function Clear-OldInstall {
-    if (-not (Test-Path $script:InstallDir)) { return }
-    Get-ChildItem -Path $script:InstallDir -File -Force -ErrorAction SilentlyContinue |
+    if (-not (Test-Path $InstallDir)) { return }
+    Get-ChildItem -Path $InstallDir -File -Force -ErrorAction SilentlyContinue |
         Where-Object { $_.Extension -in '.exe', '.dll', '.pdb' -or $_.Name -eq 'install.json' } |
         Remove-Item -Force -ErrorAction SilentlyContinue
     # NB: settings.json (managed by the app) is intentionally preserved.
@@ -284,23 +294,23 @@ function Install-Asset([pscustomobject]$asset, [string]$variant, [string]$arch) 
 
         Stop-RunningAwakeGuard
 
-        if (-not (Test-Path $script:InstallDir)) {
-            New-Item -ItemType Directory -Path $script:InstallDir -Force | Out-Null
+        if (-not (Test-Path $InstallDir)) {
+            New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
         }
         Clear-OldInstall
 
-        Write-Step "Installing to $($script:InstallExe)"
+        Write-Step "Installing to $($InstallExe)"
 
         if ($asset.Name -like '*.zip') {
             $extractDir = Join-Path $tempDir 'extracted'
             Expand-Archive -Path $downloadPath -DestinationPath $extractDir -Force
-            $exe = Get-ChildItem -Path $extractDir -Recurse -Filter $script:ExeName | Select-Object -First 1
+            $exe = Get-ChildItem -Path $extractDir -Recurse -Filter $ExeName | Select-Object -First 1
             if (-not $exe) {
-                Fail "Couldn't find $($script:ExeName) inside $($asset.Name)."
+                Fail "Couldn't find $($ExeName) inside $($asset.Name)."
             }
-            Copy-Item -Path (Join-Path $extractDir '*') -Destination $script:InstallDir -Recurse -Force
+            Copy-Item -Path (Join-Path $extractDir '*') -Destination $InstallDir -Recurse -Force
         } else {
-            Copy-Item -Path $downloadPath -Destination $script:InstallExe -Force
+            Copy-Item -Path $downloadPath -Destination $InstallExe -Force
         }
 
         $meta = [pscustomobject]@{
@@ -310,7 +320,7 @@ function Install-Asset([pscustomobject]$asset, [string]$variant, [string]$arch) 
             Arch        = $arch
             InstalledAt = (Get-Date).ToString('o')
         }
-        $meta | ConvertTo-Json | Set-Content -Path $script:MetaFile -Encoding UTF8
+        $meta | ConvertTo-Json | Set-Content -Path $MetaFile -Encoding UTF8
 
         Write-Ok "Installed AwakeGuard $($asset.Tag) ($variant, $arch)."
     } finally {
@@ -325,7 +335,7 @@ function Install-Asset([pscustomobject]$asset, [string]$variant, [string]$arch) 
 # The uninstall.ps1 script lives next to the exe and is referenced by the
 # UninstallString registry value. It is intentionally self-contained so it can
 # be invoked by Windows without our installer module.
-$script:UninstallScriptBody = @'
+$UninstallScriptBody = @'
 [CmdletBinding()]
 param([switch]$Silent)
 
@@ -388,8 +398,8 @@ if (-not $Silent) {
 '@
 
 function Write-UninstallScript {
-    $path = Join-Path $script:InstallDir 'uninstall.ps1'
-    Set-Content -Path $path -Value $script:UninstallScriptBody -Encoding UTF8
+    $path = Join-Path $InstallDir 'uninstall.ps1'
+    Set-Content -Path $path -Value $UninstallScriptBody -Encoding UTF8
     Write-Note "Wrote $path"
 }
 
@@ -400,11 +410,11 @@ function Register-Uninstall([pscustomobject]$asset, [string]$variant, [string]$a
     Remove-Item -Path $regPath -Recurse -Force -ErrorAction SilentlyContinue
     New-Item -Path $regPath -Force | Out-Null
 
-    $uninstallScriptPath = Join-Path $script:InstallDir 'uninstall.ps1'
+    $uninstallScriptPath = Join-Path $InstallDir 'uninstall.ps1'
     $uninstallCmd      = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstallScriptPath`""
     $quietUninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstallScriptPath`" -Silent"
 
-    $sizeBytes = (Get-ChildItem -Path $script:InstallDir -Recurse -File -ErrorAction SilentlyContinue |
+    $sizeBytes = (Get-ChildItem -Path $InstallDir -Recurse -File -ErrorAction SilentlyContinue |
         Measure-Object -Property Length -Sum).Sum
     $sizeKb = if ($sizeBytes) { [int]($sizeBytes / 1024) } else { 0 }
 
@@ -419,13 +429,13 @@ function Register-Uninstall([pscustomobject]$asset, [string]$variant, [string]$a
         DisplayName          = $displayName
         DisplayVersion       = $asset.Tag
         Publisher            = 'KiwiGeek'
-        DisplayIcon          = $script:InstallExe
-        InstallLocation      = $script:InstallDir
+        DisplayIcon          = $InstallExe
+        InstallLocation      = $InstallDir
         UninstallString      = $uninstallCmd
         QuietUninstallString = $quietUninstallCmd
         InstallDate          = (Get-Date).ToString('yyyyMMdd')
-        URLInfoAbout         = "https://github.com/$($script:RepoOwner)/$($script:RepoName)"
-        URLUpdateInfo        = "https://github.com/$($script:RepoOwner)/$($script:RepoName)/releases"
+        URLInfoAbout         = "https://github.com/$($RepoOwner)/$($RepoName)"
+        URLUpdateInfo        = "https://github.com/$($RepoOwner)/$($RepoName)/releases"
         Comments             = "$variant build for $arch"
     }
     foreach ($k in $stringProps.Keys) {
@@ -458,9 +468,9 @@ function New-StartMenuShortcut {
     try {
         $shell = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut($lnkPath)
-        $shortcut.TargetPath       = $script:InstallExe
-        $shortcut.WorkingDirectory = $script:InstallDir
-        $shortcut.IconLocation     = "$($script:InstallExe),0"
+        $shortcut.TargetPath       = $InstallExe
+        $shortcut.WorkingDirectory = $InstallDir
+        $shortcut.IconLocation     = "$($InstallExe),0"
         $shortcut.Description      = 'Keep your PC awake and prevent automatic lock or sleep.'
         $shortcut.Save()
         Write-Note "Start Menu shortcut: $lnkPath"
@@ -474,8 +484,8 @@ function New-StartMenuShortcut {
 # ---------------------------------------------------------------------------
 
 function Start-Installed {
-    Write-Step "Launching $($script:ExeName)..."
-    Start-Process -FilePath $script:InstallExe -WorkingDirectory $script:InstallDir
+    Write-Step "Launching $($ExeName)..."
+    Start-Process -FilePath $InstallExe -WorkingDirectory $InstallDir
 
     # Give the tray icon a moment to appear before the MessageBox steals focus.
     Start-Sleep -Milliseconds 800
@@ -522,7 +532,7 @@ function Show-TrayHint {
 
 Write-Host ''
 Write-Host '  AwakeGuard installer' -ForegroundColor Cyan
-Write-Host "  https://github.com/$($script:RepoOwner)/$($script:RepoName)" -ForegroundColor DarkGray
+Write-Host "  https://github.com/$($RepoOwner)/$($RepoName)" -ForegroundColor DarkGray
 
 $arch = Get-MachineArchitecture
 Write-Note "Detected architecture: $arch"
@@ -543,3 +553,5 @@ if (-not $NoLaunch) {
 Write-Host ''
 Write-Ok 'All done.'
 Write-Host ''
+
+} @args
