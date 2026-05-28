@@ -24,7 +24,13 @@
     <PackageProjectUrl>https://github.com/KiwiGeek/AwakeGuard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/KiwiGeek/AwakeGuard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <ApplicationIcon>..\assets\AwakeGuard.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\assets\tray-active-32.png" Link="Assets\tray-active-32.png" />
+    <Resource Include="..\assets\tray-inactive-32.png" Link="Assets\tray-inactive-32.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />

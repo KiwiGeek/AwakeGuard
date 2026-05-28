@@ -1,5 +1,6 @@
 #pragma once
 
+#define IDI_APPICON       1
 #define IDI_TRAY_ACTIVE   101
 #define IDI_TRAY_INACTIVE 102
 

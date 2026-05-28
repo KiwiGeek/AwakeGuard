@@ -41,7 +41,7 @@ cmake --build build --config Release
 
 Matches the WPF app:
 
-- System tray icon (green when active, gray when off)
+- System tray icon (shield + eye; green when active, gray when off)
 - Left-click toggle, double-click settings, context menu with durations
 - Settings window: protection options, start with Windows, duration, turn on/off
 - `SetThreadExecutionState` for sleep/display lock prevention

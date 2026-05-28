@@ -3,59 +3,22 @@
 #include "app.h"
 #include "dialogs.h"
 #include "session.h"
+#include "resource.h"
 #include "settings_wnd.h"
-#include "session.h"
 #include "util.h"
 
 namespace {
 
-HICON CreateCircleIcon(COLORREF color) {
-    constexpr int size = 32;
-    HDC screen = GetDC(nullptr);
-    HDC dc = CreateCompatibleDC(screen);
+constexpr int kTrayIconSize = 32;
 
-    BITMAPV5HEADER bi {};
-    bi.bV5Size = sizeof(BITMAPV5HEADER);
-    bi.bV5Width = size;
-    bi.bV5Height = size;
-    bi.bV5Planes = 1;
-    bi.bV5BitCount = 32;
-    bi.bV5Compression = BI_BITFIELDS;
-    bi.bV5RedMask = 0x00FF0000;
-    bi.bV5GreenMask = 0x0000FF00;
-    bi.bV5BlueMask = 0x000000FF;
-    bi.bV5AlphaMask = 0xFF000000;
-
-    void* bits = nullptr;
-    HBITMAP colorBitmap = CreateDIBSection(dc, reinterpret_cast<BITMAPINFO*>(&bi), DIB_RGB_COLORS, &bits, nullptr, 0);
-    HBITMAP maskBitmap = CreateBitmap(size, size, 1, 1, nullptr);
-    SelectObject(dc, colorBitmap);
-
-    const UINT32 fill = 0x00000000;
-  for (int i = 0; i < size * size; ++i) {
-        static_cast<UINT32*>(bits)[i] = fill;
-    }
-
-    HBRUSH brush = CreateSolidBrush(color);
-    HPEN pen = CreatePen(PS_SOLID, 1, color);
-    HGDIOBJ oldBrush = SelectObject(dc, brush);
-    HGDIOBJ oldPen = SelectObject(dc, pen);
-    Ellipse(dc, 2, 2, size - 2, size - 2);
-    SelectObject(dc, oldBrush);
-    SelectObject(dc, oldPen);
-    DeleteObject(brush);
-    DeleteObject(pen);
-
-    ICONINFO info {};
-    info.fIcon = TRUE;
-    info.hbmColor = colorBitmap;
-    info.hbmMask = maskBitmap;
-    HICON icon = CreateIconIndirect(&info);
-
-    DeleteObject(colorBitmap);
-    DeleteObject(maskBitmap);
-    DeleteDC(dc);
-    ReleaseDC(nullptr, screen);
+HICON LoadTrayIcon(int resourceId) {
+    HICON icon = static_cast<HICON>(LoadImageW(
+        GetModuleHandleW(nullptr),
+        MAKEINTRESOURCEW(resourceId),
+        IMAGE_ICON,
+        kTrayIconSize,
+        kTrayIconSize,
+        LR_DEFAULTCOLOR));
     return icon;
 }
 
@@ -105,8 +68,8 @@ void TurnOnForPreset(AppState& app, int presetIndex) {
 }  // namespace
 
 void TrayInitialize(AppState& app) {
-    app.iconActive = CreateCircleIcon(RGB(16, 185, 129));
-    app.iconInactive = CreateCircleIcon(RGB(120, 120, 120));
+    app.iconActive = LoadTrayIcon(IDI_TRAY_ACTIVE);
+    app.iconInactive = LoadTrayIcon(IDI_TRAY_INACTIVE);
     app.trayMenu = BuildTrayMenu(app);
 
     app.trayData.cbSize = sizeof(NOTIFYICONDATAW);

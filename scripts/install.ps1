@@ -573,7 +573,7 @@ function Show-TrayHint {
     # breaks here -- those would render as forced wraps in awkward places.
     $paragraphs = @(
         'AwakeGuard runs in the system tray, not as a window.'
-        'Look in the notification area at the bottom-right of the taskbar for a small circle icon. It is gray when off and green when active.'
+        'Look in the notification area at the bottom-right of the taskbar for the AwakeGuard shield icon. It is gray when off and green when active.'
         'If you do not see it, click the small up-arrow (^) next to the clock to reveal hidden icons. You can drag it onto the always-visible row to pin it.'
         'Left-click the icon to toggle. Right-click for the menu. Double-click to open the settings window.'
     )
