@@ -19,6 +19,7 @@ that builds three distributable binaries.
 | ----------------------------------- | --------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **AwakeGuard (Fluent / WPF)**       | [`AwakeGuard/`](AwakeGuard/) | .NET 10, WPF, [WPF-UI](https://github.com/lepoco/wpfui), Hardcodet.NotifyIcon | The "pretty" one. Modern Fluent / Mica UI. Requires (or bundles) the .NET 10 runtime. |
 | **AwakeGuard (Native Win32)**       | [`AwakeGuard-win32/`](AwakeGuard-win32/) | C++17, Win32 API only, no third‑party libs | The "tiny" one. Single ~200 KB exe. No runtime needed beyond Windows itself.        |
+| **AwakeGuard XP LOL** (unserious)   | [`AwakeGuard-xp-lol/`](AwakeGuard-xp-lol/) | MinGW i686, Win32, targets Windows XP | Museum build for VMs and nostalgia. Separate AppData folder. See its README.       |
 
 Both versions are feature-equivalent (same tray menu, same settings, same
 duration presets, same "copy to `%LocalAppData%\AwakeGuard`" install flow).
@@ -75,11 +76,12 @@ on `master` as `vX.Y.Z`, push the tag, then `git merge --ff-only master` on
 
 Pushing to the `release` branch (with a version tag at `HEAD`) triggers
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which
-produces **nine** artifacts (three variants × three architectures):
+produces **ten** release binaries plus `LICENSE` (three mainstream variants × three architectures, plus one XP museum build):
 
 | Variant                              | x64                                                       | x86                                                       | ARM64                                                       |
 | ------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
 | Native Win32                         | `AwakeGuard-win32-x64.exe`                                | `AwakeGuard-win32-x86.exe`                                | `AwakeGuard-win32-arm64.exe`                                |
+| Win32 XP LOL (MinGW, Windows XP)     | —                                                         | `AwakeGuard-win32-x86-xp-lol.exe`                         | —                                                           |
 | WPF, framework-dependent (needs .NET 10) | `AwakeGuard-wpf-framework-dependent-win-x64.zip`      | `AwakeGuard-wpf-framework-dependent-win-x86.zip`      | `AwakeGuard-wpf-framework-dependent-win-arm64.zip`      |
 | WPF, self-contained (bundles runtime) | `AwakeGuard-wpf-self-contained-win-x64.zip`              | `AwakeGuard-wpf-self-contained-win-x86.zip`              | `AwakeGuard-wpf-self-contained-win-arm64.zip`              |
 
@@ -126,11 +128,24 @@ cmake --build build --config Release
 
 See [`AwakeGuard-win32/README.md`](AwakeGuard-win32/README.md) for details.
 
+### XP LOL (MinGW, Windows XP)
+
+Requires MSYS2 **i686** MinGW or Linux `g++-mingw-w64-i686-w64-mingw32`. See [`AwakeGuard-xp-lol/README.md`](AwakeGuard-xp-lol/README.md).
+
+```powershell
+cd AwakeGuard-xp-lol
+.\build.ps1
+# -> build\AwakeGuard-XP-LOL.exe  (copy to your XP VM)
+```
+
+CI also builds this artifact on push (workflow `xp-lol.yml`).
+
 ## Repository layout
 
 ```
 AwakeGuard/                  WPF / .NET 10 implementation
 AwakeGuard-win32/            Native Win32 / C++17 implementation
+AwakeGuard-xp-lol/           MinGW museum build for Windows XP
 scripts/
   install.ps1                The irm | iex one-liner installer
 RELEASING.md                 Deploy checklist (read this when shipping)

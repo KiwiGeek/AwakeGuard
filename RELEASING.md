@@ -23,7 +23,7 @@ every binary and the GitHub Release.
 Pushing to `release` runs `.github/workflows/release.yml`, which:
 
 1. Requires an **exact** version tag on `HEAD` (e.g. `v0.1.1`)
-2. Builds all **nine** artifacts (Win32 + WPF framework-dependent + WPF self-contained × x64/x86/arm64)
+2. Builds all **ten** release binaries (Win32 × 3 + XP LOL i686 + WPF framework-dependent × 3 + WPF self-contained × 3)
 3. Publishes a GitHub Release on that tag named `AwakeGuard X.Y.Z`
 
 The workflow **fails** if:
@@ -100,18 +100,19 @@ meant to diverge).
 Open **Actions → Release** on GitHub. The `resolve-version` job must pass, then
 all build jobs, then **Publish GitHub Release**.
 
-Typical runtime: several minutes (nine Windows builds).
+Typical runtime: several minutes (ten Windows builds).
 
 ### 5. Verify the release
 
 On GitHub **Releases**:
 
 - Tag is `v0.1.2`, title `AwakeGuard 0.1.2`
-- Nine assets plus `LICENSE` are attached:
+- Ten executables/zips plus `LICENSE` are attached:
 
 | Artifact | Description |
 | -------- | ----------- |
-| `AwakeGuard-win32-{x64,x86,arm64}.exe` | Native, no runtime |
+| `AwakeGuard-win32-{x64,x86,arm64}.exe` | Native MSVC, no runtime |
+| `AwakeGuard-win32-x86-xp-lol.exe` | MinGW museum build for Windows XP (32-bit only; not the same binary as `win32-x86`) |
 | `AwakeGuard-wpf-framework-dependent-win-{x64,x86,arm64}.zip` | Needs .NET 10 Desktop Runtime |
 | `AwakeGuard-wpf-self-contained-win-{x64,x86,arm64}.zip` | Bundles runtime |
 
