@@ -138,7 +138,7 @@ cd AwakeGuard-xp-lol
 # -> build\AwakeGuard-XP-LOL.exe  (copy to your XP VM)
 ```
 
-CI also builds this artifact on push (workflow `xp-lol.yml`).
+CI builds this artifact as part of the [Release workflow](.github/workflows/release.yml) when you ship from the `release` branch.
 
 ## Repository layout
 
