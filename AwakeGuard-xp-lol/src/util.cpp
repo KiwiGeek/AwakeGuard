@@ -1,0 +1,196 @@
+#include "util.h"
+
+#include <shellapi.h>
+#include <shlwapi.h>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <wincrypt.h>
+
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "shlwapi.lib")
+
+std::wstring FormatWin32Error(DWORD code) {
+    wchar_t* buffer = nullptr;
+    const DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    const DWORD len = FormatMessageW(flags, nullptr, code, 0, reinterpret_cast<LPWSTR>(&buffer), 0, nullptr);
+    std::wstring message = len ? std::wstring(buffer, len) : L"Unknown error";
+    if (buffer) {
+        LocalFree(buffer);
+    }
+    while (!message.empty() && (message.back() == L'\r' || message.back() == L'\n')) {
+        message.pop_back();
+    }
+    return message;
+}
+
+std::wstring GetExePath() {
+    std::wstring path(MAX_PATH, L'\0');
+    for (;;) {
+        const DWORD len = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+        if (len == 0) {
+            return L"";
+        }
+        if (len < path.size() - 1) {
+            path.resize(len);
+            return path;
+        }
+        path.resize(path.size() * 2);
+    }
+}
+
+std::wstring GetExeDirectory() {
+    const std::wstring exe = GetExePath();
+    const size_t pos = exe.find_last_of(L"\\/");
+    return pos == std::wstring::npos ? L"" : exe.substr(0, pos);
+}
+
+bool FileSha256Hex(const std::wstring& path, std::wstring& hexOut) {
+    hexOut.clear();
+    HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    HCRYPTPROV provider = 0;
+    HCRYPTHASH hash = 0;
+    bool ok = false;
+
+    if (!CryptAcquireContextW(&provider, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
+        if (!CryptAcquireContextW(&provider, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+            CloseHandle(file);
+            return false;
+        }
+    }
+
+    if (!CryptCreateHash(provider, CALG_SHA_256, 0, 0, &hash)) {
+        CryptReleaseContext(provider, 0);
+        CloseHandle(file);
+        return false;
+    }
+
+    std::vector<BYTE> buffer(64 * 1024);
+    DWORD read = 0;
+    while (ReadFile(file, buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr) && read > 0) {
+        if (!CryptHashData(hash, buffer.data(), read, 0)) {
+            goto cleanup;
+        }
+    }
+
+    {
+        DWORD hashSize = 0;
+        DWORD hashSizeLen = sizeof(hashSize);
+        if (CryptGetHashParam(hash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&hashSize), &hashSizeLen, 0)) {
+            std::vector<BYTE> hashBytes(hashSize);
+            if (CryptGetHashParam(hash, HP_HASHVAL, hashBytes.data(), &hashSize, 0)) {
+                static const wchar_t* digits = L"0123456789ABCDEF";
+                hexOut.reserve(hashSize * 2);
+                for (DWORD i = 0; i < hashSize; ++i) {
+                    hexOut.push_back(digits[(hashBytes[i] >> 4) & 0xF]);
+                    hexOut.push_back(digits[hashBytes[i] & 0xF]);
+                }
+                ok = true;
+            }
+        }
+    }
+
+cleanup:
+    if (hash) {
+        CryptDestroyHash(hash);
+    }
+    if (provider) {
+        CryptReleaseContext(provider, 0);
+    }
+    CloseHandle(file);
+    return ok;
+}
+
+bool FilesIdentical(const std::wstring& a, const std::wstring& b) {
+    WIN32_FILE_ATTRIBUTE_DATA fa {};
+    WIN32_FILE_ATTRIBUTE_DATA fb {};
+    if (!GetFileAttributesExW(a.c_str(), GetFileExInfoStandard, &fa) ||
+        !GetFileAttributesExW(b.c_str(), GetFileExInfoStandard, &fb)) {
+        return false;
+    }
+
+    if (fa.nFileSizeLow != fb.nFileSizeLow || fa.nFileSizeHigh != fb.nFileSizeHigh) {
+        return false;
+    }
+
+    std::wstring ha;
+    std::wstring hb;
+    if (FileSha256Hex(a, ha) && FileSha256Hex(b, hb)) {
+        return _wcsicmp(ha.c_str(), hb.c_str()) == 0;
+    }
+
+    return true;
+}
+
+bool GetFileSizeBytes(const std::wstring& path, ULONGLONG& sizeOut) {
+    WIN32_FILE_ATTRIBUTE_DATA info {};
+    if (!GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &info)) {
+        return false;
+    }
+
+    sizeOut = (static_cast<ULONGLONG>(info.nFileSizeHigh) << 32) | info.nFileSizeLow;
+    return true;
+}
+
+bool DeletePathAllowReadonly(const std::wstring& path, std::wstring& errorOut) {
+    errorOut.clear();
+    if (!DeleteFileW(path.c_str())) {
+        const DWORD code = GetLastError();
+        if (code == ERROR_FILE_NOT_FOUND) {
+            return true;
+        }
+
+        if (code == ERROR_ACCESS_DENIED) {
+            const DWORD attrs = GetFileAttributesW(path.c_str());
+            if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_READONLY)) {
+                SetFileAttributesW(path.c_str(), attrs & ~FILE_ATTRIBUTE_READONLY);
+                if (DeleteFileW(path.c_str())) {
+                    return true;
+                }
+            }
+        }
+
+        errorOut = FormatWin32Error(GetLastError());
+        return false;
+    }
+
+    return true;
+}
+
+void ShellOpen(const std::wstring& target) {
+    ShellExecuteW(nullptr, L"open", target.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+std::wstring QuoteCommandArg(const std::wstring& value) {
+    std::wstring trimmed = value;
+    while (!trimmed.empty() && (trimmed.back() == L'\\' || trimmed.back() == L'/')) {
+        trimmed.pop_back();
+    }
+    std::wstring out = L"\"";
+    for (wchar_t ch : trimmed) {
+        if (ch == L'"') {
+            out += L"\\\"";
+        } else {
+            out += ch;
+        }
+    }
+    out += L"\"";
+    return out;
+}
+
+std::vector<std::wstring> ParseCommandLineArgs() {
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    std::vector<std::wstring> args;
+    if (argv) {
+        for (int i = 0; i < argc; ++i) {
+            args.push_back(argv[i]);
+        }
+        LocalFree(argv);
+    }
+    return args;
+}
