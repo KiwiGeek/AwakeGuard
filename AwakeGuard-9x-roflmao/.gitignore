@@ -1,0 +1,4 @@
+build/
+floppy/
+redist/**
+!redist/README.md

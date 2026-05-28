@@ -22,6 +22,7 @@ PUPIL_ACTIVE = (6, 95, 70, 255)
 PUPIL_INACTIVE = (90, 90, 90, 255)
 
 APP_SIZES = (16, 24, 32, 48, 64, 128, 256)
+WEB_SIZES = (512, 1024)  # PNG for site / og:image / PWA
 TRAY_SIZE = 32
 
 
@@ -116,6 +117,10 @@ def main() -> None:
     save_ico(ASSETS / "tray-inactive.ico", tray_inactive)
     save_png(ASSETS / "tray-active-32.png", tray_active[1])
     save_png(ASSETS / "tray-inactive-32.png", tray_inactive[1])
+
+    for size in WEB_SIZES:
+        save_png(ASSETS / f"AwakeGuard-{size}.png", draw_icon(size, active=True))
+
     print(f"Wrote icons under {ASSETS}")
 
 

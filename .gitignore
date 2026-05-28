@@ -167,3 +167,10 @@ FodyWeavers.xsd
 node_modules/
 __pycache__/
 *.pyc
+
+# Local scratch / emulator trees (not part of the repo)
+/pcjs/
+/_cpptest*.exe
+/_crttest*.exe
+/_err*.txt
+/_libgcc_members.txt

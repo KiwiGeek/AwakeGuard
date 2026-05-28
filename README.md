@@ -10,18 +10,21 @@ Under the hood it just calls
 with `ES_SYSTEM_REQUIRED` (sleep) and `ES_DISPLAY_REQUIRED` (display). No power
 plan changes, no services, no drivers.
 
-This repository contains **two** implementations of the app plus a CI pipeline
-that builds three distributable binaries.
+This repository contains **four** codebases: two supported implementations (WPF
+and native Win32), plus two MinGW museum ports (XP LOL and 9x ROFLMAO). Release
+CI on the `release` branch ships **eleven** binaries (Win32 and WPF × three
+architectures, plus the XP LOL and 9x ROFLMAO i686 museum builds).
 
-## The two flavors
+## Flavors
 
 | Flavor                              | Folder                | Tech                                  | Why you'd pick it                                                                                              |
 | ----------------------------------- | --------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **AwakeGuard (Fluent / WPF)**       | [`AwakeGuard/`](AwakeGuard/) | .NET 10, WPF, [WPF-UI](https://github.com/lepoco/wpfui), Hardcodet.NotifyIcon | The "pretty" one. Modern Fluent / Mica UI. Requires (or bundles) the .NET 10 runtime. |
 | **AwakeGuard (Native Win32)**       | [`AwakeGuard-win32/`](AwakeGuard-win32/) | C++17, Win32 API only, no third‑party libs | The "tiny" one. Single ~200 KB exe. No runtime needed beyond Windows itself.        |
 | **AwakeGuard XP LOL** (unserious)   | [`AwakeGuard-xp-lol/`](AwakeGuard-xp-lol/) | MinGW i686, Win32, targets Windows XP | Museum build for VMs and nostalgia. Separate AppData folder. See its README.       |
+| **AwakeGuard 9x ROFLMAO** (unhinged)  | [`AwakeGuard-9x-roflmao/`](AwakeGuard-9x-roflmao/) | MinGW i686, Win32, targets 95/98/ME+ | Even older museum build; screensaver on 9x, sleep on Win2000+. See its README.     |
 
-Both versions are feature-equivalent (same tray menu, same settings, same
+Both main versions are feature-equivalent (same tray menu, same settings, same
 duration presets, same "copy to `%LocalAppData%\AwakeGuard`" install flow).
 
 ## Install (one-liner)
@@ -76,12 +79,13 @@ on `master` as `vX.Y.Z`, push the tag, then `git merge --ff-only master` on
 
 Pushing to the `release` branch (with a version tag at `HEAD`) triggers
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which
-produces **ten** release binaries plus `LICENSE` (three mainstream variants × three architectures, plus one XP museum build):
+produces **eleven** release binaries plus `LICENSE` (three mainstream variants × three architectures, plus two MinGW museum builds):
 
 | Variant                              | x64                                                       | x86                                                       | ARM64                                                       |
 | ------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
 | Native Win32                         | `AwakeGuard-win32-x64.exe`                                | `AwakeGuard-win32-x86.exe`                                | `AwakeGuard-win32-arm64.exe`                                |
 | Win32 XP LOL (MinGW, Windows XP)     | —                                                         | `AwakeGuard-win32-x86-xp-lol.exe`                         | —                                                           |
+| Win32 9x ROFLMAO (MinGW, Windows 95 / 98 / ME) | —                                                 | `AwakeGuard-win32-x86-9x-roflmao.exe`                     | —                                                           |
 | WPF, framework-dependent (needs .NET 10) | `AwakeGuard-wpf-framework-dependent-win-x64.zip`      | `AwakeGuard-wpf-framework-dependent-win-x86.zip`      | `AwakeGuard-wpf-framework-dependent-win-arm64.zip`      |
 | WPF, self-contained (bundles runtime) | `AwakeGuard-wpf-self-contained-win-x64.zip`              | `AwakeGuard-wpf-self-contained-win-x86.zip`              | `AwakeGuard-wpf-self-contained-win-arm64.zip`              |
 
@@ -140,17 +144,50 @@ cd AwakeGuard-xp-lol
 
 CI builds this artifact as part of the [Release workflow](.github/workflows/release.yml) when you ship from the `release` branch.
 
+### 9x ROFLMAO (MinGW, Windows 95 / 98 / ME)
+
+ANSI Win32 museum build for real Windows 9x tray shells (and the same `.exe` still runs on newer Windows). See [`AwakeGuard-9x-roflmao/README.md`](AwakeGuard-9x-roflmao/README.md) for the OS capability matrix.
+
+Requires the same **MSYS2 MinGW i686** toolchain as XP LOL (or Linux `g++-mingw-w64-i686-win32` for cross-compile). From the repo root, generate shared icons once if needed:
+
+```powershell
+python scripts/generate-icons.py
+```
+
+**Windows (MSYS2):**
+
+```powershell
+cd AwakeGuard-9x-roflmao
+.\build.ps1
+# -> build\AwakeGuard-9x-ROFLMAO.exe  (copy to your 95/98/ME VM)
+```
+
+`.\build.ps1 -InstallMsys2` can install MSYS2 via winget; use `.\build.ps1 -Clean` if a previous build folder is locked. Install packages in the **MSYS2 MinGW 32-bit** shell: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `mingw-w64-i686-make`, `mingw-w64-i686-binutils`.
+
+**Linux (cross-compile):**
+
+```bash
+python3 scripts/generate-icons.py
+cd AwakeGuard-9x-roflmao
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-9x.cmake
+cmake --build build
+# -> build/AwakeGuard-9x-ROFLMAO.exe
+```
+
+CI builds this artifact as **`AwakeGuard-win32-x86-9x-roflmao.exe`** on the [Release workflow](.github/workflows/release.yml) when you ship from the `release` branch (same tag-driven `AWAKEGUARD_VERSION` as the other builds).
+
 ## Repository layout
 
 ```
 AwakeGuard/                  WPF / .NET 10 implementation
 AwakeGuard-win32/            Native Win32 / C++17 implementation
 AwakeGuard-xp-lol/           MinGW museum build for Windows XP
+AwakeGuard-9x-roflmao/       MinGW museum build for Windows 9x (95/98/ME+)
 scripts/
   install.ps1                The irm | iex one-liner installer
 RELEASING.md                 Deploy checklist (read this when shipping)
 .github/workflows/
-  release.yml                Builds all 9 artifacts on push to `release`
+  release.yml                Builds all 11 artifacts on push to `release`
 .gitignore                   Combined VS + CMake ignores
 .gitattributes               Line-ending + diff hints
 README.md                    You are here

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="@AWAKEGUARD_MANIFEST_VERSION@" processorArchitecture="x86" name="AwakeGuard-9x-ROFLMAO" type="win32"/>
+</assembly>
