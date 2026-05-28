@@ -7,18 +7,30 @@
 #include "settings_wnd.h"
 #include "util.h"
 
+#include <stddef.h>
+
 namespace {
 
-constexpr int kTrayIconSize = 16;
+// XP shell rejects NOTIFYICONDATAW when cbSize includes unused balloon/guid tail fields.
+UINT NotifyIconDataSize(bool includeBalloonFields) {
+    if (includeBalloonFields) {
+        return sizeof(NOTIFYICONDATAW);
+    }
+    return static_cast<UINT>(FIELD_OFFSET(NOTIFYICONDATAW, szInfo));
+}
 
 HICON LoadTrayIcon(int resourceId) {
-    return static_cast<HICON>(LoadImageW(
+    HICON icon = static_cast<HICON>(LoadImageW(
         GetModuleHandleW(nullptr),
         MAKEINTRESOURCEW(resourceId),
         IMAGE_ICON,
-        kTrayIconSize,
-        kTrayIconSize,
+        16,
+        16,
         LR_DEFAULTCOLOR));
+    if (!icon) {
+        icon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(resourceId));
+    }
+    return icon;
 }
 
 void UpdateTrayMenuState(AppState& app) {
@@ -72,7 +84,7 @@ void TrayInitialize(AppState& app) {
     app.trayMenu = BuildTrayMenu(app);
 
     ZeroMemory(&app.trayData, sizeof(app.trayData));
-    app.trayData.cbSize = sizeof(NOTIFYICONDATAW);
+    app.trayData.cbSize = NotifyIconDataSize(false);
     app.trayData.hWnd = app.settingsWindow;
     app.trayData.uID = 1;
     app.trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
@@ -104,6 +116,7 @@ void TrayDispose(AppState& app) {
 
 void TrayUpdate(AppState& app) {
     const std::wstring status = SessionStatusText(app.session);
+    app.trayData.cbSize = NotifyIconDataSize(false);
     app.trayData.hIcon = app.session.isActive ? app.iconActive : app.iconInactive;
     app.trayData.uFlags = NIF_ICON | NIF_TIP;
     const std::wstring tip = L"AwakeGuard XP LOL - " + status;
@@ -113,6 +126,7 @@ void TrayUpdate(AppState& app) {
 }
 
 void TrayShowBalloon(AppState& app, LPCWSTR message) {
+    app.trayData.cbSize = NotifyIconDataSize(true);
     app.trayData.uFlags = NIF_INFO;
     lstrcpynW(app.trayData.szInfoTitle, L"AwakeGuard XP LOL", static_cast<int>(sizeof(app.trayData.szInfoTitle) / sizeof(wchar_t)));
     lstrcpynW(app.trayData.szInfo, message, static_cast<int>(sizeof(app.trayData.szInfo) / sizeof(wchar_t)));
@@ -120,6 +134,7 @@ void TrayShowBalloon(AppState& app, LPCWSTR message) {
     app.trayData.uTimeout = 10000;
     Shell_NotifyIconW(NIM_MODIFY, &app.trayData);
     app.trayData.uFlags = NIF_ICON | NIF_TIP;
+    app.trayData.cbSize = NotifyIconDataSize(false);
 }
 
 LRESULT TrayHandleMessage(AppState& app, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

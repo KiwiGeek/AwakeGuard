@@ -10,6 +10,10 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "shlwapi.lib")
 
+#ifndef CALG_SHA_256
+#define CALG_SHA_256 0x0000800c
+#endif
+
 std::wstring FormatWin32Error(DWORD code) {
     wchar_t* buffer = nullptr;
     const DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
@@ -27,7 +31,7 @@ std::wstring FormatWin32Error(DWORD code) {
 std::wstring GetExePath() {
     std::wstring path(MAX_PATH, L'\0');
     for (;;) {
-        const DWORD len = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+        const DWORD len = GetModuleFileNameW(nullptr, &path[0], static_cast<DWORD>(path.size()));
         if (len == 0) {
             return L"";
         }

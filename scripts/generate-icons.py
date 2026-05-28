@@ -94,12 +94,14 @@ def save_png(path: Path, image: Image.Image) -> None:
 
 
 def save_ico(path: Path, images: list[Image.Image]) -> None:
+    """Write ICO with BMP frames (required for Windows XP; PNG-in-ICO is Vista+)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     images[0].save(
         path,
         format="ICO",
         sizes=[(img.width, img.height) for img in images],
         append_images=images[1:],
+        bitmap_format="bmp",
     )
 
 
@@ -107,13 +109,13 @@ def main() -> None:
     app_images = [draw_icon(s, active=True) for s in APP_SIZES]
     save_ico(ASSETS / "AwakeGuard.ico", app_images)
 
-    tray_active = draw_icon(TRAY_SIZE, active=True)
-    tray_inactive = draw_icon(TRAY_SIZE, active=False)
-    save_ico(ASSETS / "tray-active.ico", [tray_active])
-    save_ico(ASSETS / "tray-inactive.ico", [tray_inactive])
-    save_png(ASSETS / "tray-active-32.png", tray_active)
-    save_png(ASSETS / "tray-inactive-32.png", tray_inactive)
-
+    # Tray/shell: include 16px (notification area) and 32px (picker/alt DPI).
+    tray_active = [draw_icon(16, active=True), draw_icon(32, active=True)]
+    tray_inactive = [draw_icon(16, active=False), draw_icon(32, active=False)]
+    save_ico(ASSETS / "tray-active.ico", tray_active)
+    save_ico(ASSETS / "tray-inactive.ico", tray_inactive)
+    save_png(ASSETS / "tray-active-32.png", tray_active[1])
+    save_png(ASSETS / "tray-inactive-32.png", tray_inactive[1])
     print(f"Wrote icons under {ASSETS}")
 
 

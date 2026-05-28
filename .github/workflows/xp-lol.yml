@@ -1,3 +1,4 @@
+# PR / master CI for the XP LOL tree. Release builds use release.yml (job build-xp-lol).
 name: XP LOL build
 
 on:
@@ -30,14 +31,12 @@ jobs:
       - name: Install MinGW i686
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-mingw-w64-i686-w64-mingw32
+          sudo apt-get install -y g++-mingw-w64-i686-w64-mingw32 binutils-mingw-w64-i686
 
-      - name: Ensure icons exist
+      - name: Install Pillow and generate BMP icons
         run: |
-          if [ ! -f assets/AwakeGuard.ico ]; then
-            sudo apt-get install -y python3-pil
-            python3 scripts/generate-icons.py
-          fi
+          sudo apt-get install -y python3-pil
+          python3 scripts/generate-icons.py
 
       - name: Configure and build
         working-directory: AwakeGuard-xp-lol
@@ -45,9 +44,16 @@ jobs:
           cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-xp.cmake
           cmake --build build --config Release
 
+      - name: Stage and upload artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          cp -v AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe artifacts/AwakeGuard-win32-x86-xp-lol.exe
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: AwakeGuard-win32-x86-xp-lol
-          path: AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe
+          path: artifacts/AwakeGuard-win32-x86-xp-lol.exe
           if-no-files-found: error

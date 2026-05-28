@@ -110,7 +110,12 @@ void LayoutAboutWindow(HWND window) {
     y += 70;
 
     wchar_t versionLine[48];
-    swprintf(versionLine, L"Version %u.%u.%u (XP LOL)", AWAKEGUARD_VERSION_MAJOR, AWAKEGUARD_VERSION_MINOR, AWAKEGUARD_VERSION_PATCH);
+    swprintf(
+        versionLine,
+        L"Version %u.%u.%u (XP LOL)",
+        static_cast<unsigned>(AWAKEGUARD_VERSION_MAJOR),
+        static_cast<unsigned>(AWAKEGUARD_VERSION_MINOR),
+        static_cast<unsigned>(AWAKEGUARD_VERSION_PATCH));
     CreateAboutLabel(window, margin, y, contentWidth, 18, versionLine, UiBodyFont(), true);
     y += 28;
 

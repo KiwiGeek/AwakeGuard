@@ -76,11 +76,12 @@ on `master` as `vX.Y.Z`, push the tag, then `git merge --ff-only master` on
 
 Pushing to the `release` branch (with a version tag at `HEAD`) triggers
 [`.github/workflows/release.yml`](.github/workflows/release.yml), which
-produces **nine** artifacts (three variants × three architectures):
+produces **ten** release binaries plus `LICENSE` (three mainstream variants × three architectures, plus one XP museum build):
 
 | Variant                              | x64                                                       | x86                                                       | ARM64                                                       |
 | ------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
 | Native Win32                         | `AwakeGuard-win32-x64.exe`                                | `AwakeGuard-win32-x86.exe`                                | `AwakeGuard-win32-arm64.exe`                                |
+| Win32 XP LOL (MinGW, Windows XP)     | —                                                         | `AwakeGuard-win32-x86-xp-lol.exe`                         | —                                                           |
 | WPF, framework-dependent (needs .NET 10) | `AwakeGuard-wpf-framework-dependent-win-x64.zip`      | `AwakeGuard-wpf-framework-dependent-win-x86.zip`      | `AwakeGuard-wpf-framework-dependent-win-arm64.zip`      |
 | WPF, self-contained (bundles runtime) | `AwakeGuard-wpf-self-contained-win-x64.zip`              | `AwakeGuard-wpf-self-contained-win-x86.zip`              | `AwakeGuard-wpf-self-contained-win-arm64.zip`              |
 

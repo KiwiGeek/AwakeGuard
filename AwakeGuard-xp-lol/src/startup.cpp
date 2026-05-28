@@ -46,7 +46,7 @@ void RemoveRunEntry() {
 }
 
 bool LaunchInstalledCopy(const std::wstring& destinationExe, const std::wstring& destinationDir, const std::wstring& sourceExe) {
-    if (!PathFileExists(destinationExe)) {
+    if (!FilePathExists(destinationExe)) {
         return false;
     }
 

@@ -20,7 +20,7 @@ bool PathsReferToSameDirectory(const std::wstring& first, const std::wstring& se
 }
 
 bool InstallArtifactMatchesSource(const std::wstring& sourcePath, const std::wstring& installPath) {
-    if (!PathFileExists(sourcePath) || !PathFileExists(installPath)) {
+    if (!FilePathExists(sourcePath) || !FilePathExists(installPath)) {
         return false;
     }
 
@@ -39,7 +39,7 @@ bool CleanupMatchingArtifacts(const std::wstring& sourceExecutablePath, const st
     const std::vector<std::wstring> artifacts = paths::RelocateArtifactPaths(sourceExecutablePath);
     for (size_t i = 0; i < artifacts.size(); ++i) {
         const std::wstring& sourcePath = artifacts[i];
-        if (!PathFileExists(sourcePath)) {
+        if (!FilePathExists(sourcePath)) {
             continue;
         }
 
@@ -81,7 +81,7 @@ void CleanupOfferPrompt(HWND owner, const std::wstring& sourceExecutablePath) {
     }
 
     const std::wstring normalizedExecutable = full;
-    if (!PathFileExists(normalizedExecutable) || !paths::IsOnDesktopOrDownloads(normalizedExecutable)) {
+    if (!FilePathExists(normalizedExecutable) || !paths::IsOnDesktopOrDownloads(normalizedExecutable)) {
         return;
     }
 

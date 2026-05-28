@@ -143,7 +143,7 @@ std::vector<std::wstring> RelocateArtifactPaths(const std::wstring& sourceExecut
         pdbPath = pdbPath.substr(0, dot);
     }
     pdbPath += L".pdb";
-    if (PathFileExists(pdbPath)) {
+    if (FilePathExists(pdbPath)) {
         artifacts.push_back(pdbPath);
     }
 

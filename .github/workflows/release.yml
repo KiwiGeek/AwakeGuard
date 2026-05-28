@@ -120,7 +120,54 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 2. WPF .NET 10 — framework-dependent. Matrix: x64/x86/arm64.
+  # 2. XP LOL (MinGW i686) — 32-bit only, for Windows XP (museum build).
+  # ---------------------------------------------------------------------------
+  build-xp-lol:
+    name: XP LOL (WinXP i686)
+    needs: resolve-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MinGW i686 and Pillow
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-mingw-w64-i686-w64-mingw32 binutils-mingw-w64-i686 python3-pil
+
+      - name: Generate XP-compatible icons (BMP ICO, not PNG-in-ICO)
+        run: python3 scripts/generate-icons.py
+
+      - name: Configure and build
+        working-directory: AwakeGuard-xp-lol
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-xp.cmake \
+            -DAWAKEGUARD_VERSION=${{ needs.resolve-version.outputs.semver }}
+          cmake --build build --config Release
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe"
+          if [ ! -f "$src" ]; then
+            echo "::error::XP LOL executable not found at $src"
+            find AwakeGuard-xp-lol -name '*.exe' -o -name '*.EXE' || true
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp -v "$src" artifacts/AwakeGuard-win32-x86-xp-lol.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AwakeGuard-win32-x86-xp-lol
+          path: artifacts/AwakeGuard-win32-x86-xp-lol.exe
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 3. WPF .NET 10 — framework-dependent. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-wpf-framework-dependent:
     name: WPF framework-dependent (${{ matrix.arch }})
@@ -172,7 +219,7 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 3. WPF .NET 10 — self-contained single file. Matrix: x64/x86/arm64.
+  # 4. WPF .NET 10 — self-contained single file. Matrix: x64/x86/arm64.
   # ---------------------------------------------------------------------------
   build-wpf-self-contained:
     name: WPF self-contained (${{ matrix.arch }})
@@ -226,13 +273,14 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 4. Publish a GitHub Release with all nine artifacts attached.
+  # 5. Publish a GitHub Release with all artifacts attached.
   # ---------------------------------------------------------------------------
   release:
     name: Publish GitHub Release
     needs:
       - resolve-version
       - build-win32
+      - build-xp-lol
       - build-wpf-framework-dependent
       - build-wpf-self-contained
     runs-on: ubuntu-latest

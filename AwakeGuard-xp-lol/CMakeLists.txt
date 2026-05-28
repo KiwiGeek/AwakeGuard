@@ -11,6 +11,8 @@ if(NOT CMAKE_TOOLCHAIN_FILE)
         "  cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-xp.cmake")
 endif()
 
+include(cmake/Version.cmake)
+
 add_executable(AwakeGuard-XP-LOL WIN32
     src/main.cpp
     src/app.cpp
@@ -26,9 +28,18 @@ add_executable(AwakeGuard-XP-LOL WIN32
     src/util.cpp
     src/ui.cpp
     src/resource.rc
+    "${AWAKEGUARD_GENERATED_DIR}/app.manifest"
 )
 
-target_include_directories(AwakeGuard-XP-LOL PRIVATE src)
+target_include_directories(AwakeGuard-XP-LOL PRIVATE
+    src
+    "${AWAKEGUARD_GENERATED_DIR}"
+)
+
+if(CMAKE_RC_COMPILER)
+    set_source_files_properties(src/resource.rc PROPERTIES
+        COMPILE_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/src -I${AWAKEGUARD_GENERATED_DIR}")
+endif()
 
 target_compile_definitions(AwakeGuard-XP-LOL PRIVATE
     AWAKEGUARD_XP_LOL=1
@@ -36,11 +47,6 @@ target_compile_definitions(AwakeGuard-XP-LOL PRIVATE
     _WIN32_WINNT=0x0501
     UNICODE
     _UNICODE
-    AWAKEGUARD_VERSION_MAJOR=0
-    AWAKEGUARD_VERSION_MINOR=1
-    AWAKEGUARD_VERSION_PATCH=1
-    AWAKEGUARD_VERSION_REVISION=0
-    AWAKEGUARD_FILE_VERSION_STR=\"0.1.1.0-XP-LOL\"
 )
 
 target_link_libraries(AwakeGuard-XP-LOL PRIVATE
@@ -65,7 +71,3 @@ set_target_properties(AwakeGuard-XP-LOL PROPERTIES
     OUTPUT_NAME "AwakeGuard-XP-LOL"
     WIN32_EXECUTABLE TRUE
 )
-
-if(MINGW AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/app.manifest")
-    target_sources(AwakeGuard-XP-LOL PRIVATE app.manifest)
-endif()

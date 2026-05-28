@@ -2,7 +2,7 @@
 
 #include <shlwapi.h>
 
-bool PathFileExists(const std::wstring& path) {
+bool FilePathExists(const std::wstring& path) {
     return PathFileExistsW(path.c_str()) != FALSE;
 }
 
@@ -13,7 +13,7 @@ std::wstring PathGetFileName(const std::wstring& path) {
 
 bool PathCopyFileOverwrite(const std::wstring& source, const std::wstring& destination, std::wstring& errorOut) {
     errorOut.clear();
-    if (!PathFileExists(source)) {
+    if (!FilePathExists(source)) {
         errorOut = L"Source file not found.";
         return false;
     }

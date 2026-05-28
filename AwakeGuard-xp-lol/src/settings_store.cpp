@@ -1,6 +1,7 @@
 #include "settings_store.h"
 
 #include "paths.h"
+#include "win32_common.h"
 
 #include <string>
 #include <vector>
