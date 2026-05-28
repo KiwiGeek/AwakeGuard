@@ -24,10 +24,12 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 # Link MSVCRT20.DLL (ships in Win95 System) instead of MSVCRT.DLL (VC6 redist).
-set(_AWAKEGUARD_9X_CRT "-mcrtdll=msvcrt20")
+# Applied via target_compile/link_options in CMakeLists.txt (-mcrtdll=msvcrt20).
+# Do not put -mcrtdll in CMAKE_*_FLAGS_INIT: older Ubuntu mingw GCC rejects it
+# during CMake's compiler probe, and the flag needs GCC 14+ / MSYS2 anyway.
 
 # i486 avoids libgcc paths that import IsProcessorFeaturePresent (Win98+).
 set(_AWAKEGUARD_9X_ARCH "-march=i486 -mtune=i486")
 
-set(CMAKE_C_FLAGS_INIT "-Os ${_AWAKEGUARD_9X_CRT} ${_AWAKEGUARD_9X_ARCH} -DWINVER=0x0400 -D_WIN32_WINDOWS=0x0400 -D_WIN32_WINNT=0x0400")
-set(CMAKE_CXX_FLAGS_INIT "-Os ${_AWAKEGUARD_9X_CRT} ${_AWAKEGUARD_9X_ARCH} -DWINVER=0x0400 -D_WIN32_WINDOWS=0x0400 -D_WIN32_WINNT=0x0400")
+set(CMAKE_C_FLAGS_INIT "-Os ${_AWAKEGUARD_9X_ARCH} -DWINVER=0x0400 -D_WIN32_WINDOWS=0x0400 -D_WIN32_WINNT=0x0400")
+set(CMAKE_CXX_FLAGS_INIT "-Os ${_AWAKEGUARD_9X_ARCH} -DWINVER=0x0400 -D_WIN32_WINDOWS=0x0400 -D_WIN32_WINNT=0x0400")

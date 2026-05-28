@@ -24,9 +24,9 @@ This build is **ANSI** (`WinMain`, `Shell_NotifyIconA`, narrow paths) for real *
 - Settings in `settings.json`
 - Optional copy-to-AppData + Run key
 
-## Build (Linux CI / cross-compile)
+## Build (local cross-compile)
 
-Release CI uses the same steps as below, with `-DAWAKEGUARD_VERSION` set from the release tag (e.g. `0.1.2` from `v0.1.2`). The GitHub Release asset is named `AwakeGuard-win32-x86-9x-roflmao.exe`.
+Ubuntu’s `gcc-mingw-w64-i686` (GCC 13) does **not** support `-mcrtdll=msvcrt20`. Use **MSYS2 MinGW32** (see below) or a newer MinGW-w64 GCC 14+.
 
 ```bash
 cd AwakeGuard-9x-roflmao
@@ -36,6 +36,8 @@ cmake -S . -B build \
 cmake --build build
 # -> build/AwakeGuard-9x-ROFLMAO.exe
 ```
+
+**Release CI** builds on MSYS2 MinGW32 (Windows runner) with `-DAWAKEGUARD_VERSION` from the tag; artifact: `AwakeGuard-win32-x86-9x-roflmao.exe`.
 
 From repo root, ensure icons exist:
 

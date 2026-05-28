@@ -68,8 +68,11 @@ target_link_libraries(AwakeGuard-9x-ROFLMAO PRIVATE
     ole32
 )
 
-target_link_options(AwakeGuard-9x-ROFLMAO PRIVATE
+target_compile_options(AwakeGuard-9x-ROFLMAO PRIVATE
     -mcrtdll=msvcrt20
+)
+
+target_link_options(AwakeGuard-9x-ROFLMAO PRIVATE
     -static
     -static-libgcc
     -static-libstdc++

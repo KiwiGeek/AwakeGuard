@@ -148,7 +148,7 @@ CI builds this artifact as part of the [Release workflow](.github/workflows/rele
 
 ANSI Win32 museum build for real Windows 9x tray shells (and the same `.exe` still runs on newer Windows). See [`AwakeGuard-9x-roflmao/README.md`](AwakeGuard-9x-roflmao/README.md) for the OS capability matrix.
 
-Requires the same **MSYS2 MinGW i686** toolchain as XP LOL (or Linux `g++-mingw-w64-i686-win32` for cross-compile). From the repo root, generate shared icons once if needed:
+Requires **MSYS2 MinGW i686** (GCC 14+ for `-mcrtdll=msvcrt20`; Ubuntu apt `gcc-mingw-w64-i686` is too old). From the repo root, generate shared icons once if needed:
 
 ```powershell
 python scripts/generate-icons.py
@@ -164,7 +164,7 @@ cd AwakeGuard-9x-roflmao
 
 `.\build.ps1 -InstallMsys2` can install MSYS2 via winget; use `.\build.ps1 -Clean` if a previous build folder is locked. Install packages in the **MSYS2 MinGW 32-bit** shell: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `mingw-w64-i686-make`, `mingw-w64-i686-binutils`.
 
-**Linux (cross-compile):**
+**Linux (cross-compile):** only with MinGW-w64 **GCC 14+** that supports `-mcrtdll=msvcrt20` (stock Ubuntu Noble `gcc-mingw-w64-i686` is GCC 13 and will not work). Release CI builds this target on **MSYS2 MinGW32** (Windows runner).
 
 ```bash
 python3 scripts/generate-icons.py

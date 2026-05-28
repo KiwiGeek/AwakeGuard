@@ -172,37 +172,45 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 3. 9x ROFLMAO (MinGW i686) — 32-bit only, for Windows 95 / 98 / ME (museum build).
+  # Needs MSYS2 MinGW: -mcrtdll=msvcrt20 requires GCC 14+ (Ubuntu apt mingw is GCC 13).
   # ---------------------------------------------------------------------------
   build-9x-roflmao:
     name: 9x ROFLMAO (Win9x i686)
     needs: resolve-version
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install MinGW i686 and Pillow
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-mingw-w64-i686-win32 \
-            g++-mingw-w64-i686-win32 \
-            binutils-mingw-w64-i686 \
-            python3-pil
+      - name: Setup MSYS2 MinGW32
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          update: true
+          install: >-
+            mingw-w64-i686-gcc
+            mingw-w64-i686-cmake
+            mingw-w64-i686-make
+            python
+            python-pillow
 
       - name: Generate XP/9x-compatible icons (BMP ICO, not PNG-in-ICO)
-        run: python3 scripts/generate-icons.py
+        run: python scripts/generate-icons.py
 
       - name: Configure and build
         working-directory: AwakeGuard-9x-roflmao
+        env:
+          AWAKEGUARD_VERSION: ${{ needs.resolve-version.outputs.semver }}
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build -G "MinGW Makefiles" \
             -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-9x.cmake \
-            -DAWAKEGUARD_VERSION=${{ needs.resolve-version.outputs.semver }}
-          cmake --build build --config Release
+            -DAWAKEGUARD_VERSION="$AWAKEGUARD_VERSION"
+          cmake --build build
 
       - name: Stage artifact
-        shell: bash
         run: |
           set -euo pipefail
           src="AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe"
