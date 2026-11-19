@@ -93,6 +93,30 @@ HFONT UiSectionFont() {
     return g_sectionFont;
 }
 
+UINT UiDpi() {
+    // Matches the LOGPIXELSY used to create the fonts in CreateFontPointSize.
+    static UINT dpi = 0;
+    if (dpi == 0) {
+        const HDC screen = GetDC(nullptr);
+        dpi = static_cast<UINT>(GetDeviceCaps(screen, LOGPIXELSY));
+        ReleaseDC(nullptr, screen);
+        if (dpi == 0) {
+            dpi = USER_DEFAULT_SCREEN_DPI;
+        }
+    }
+    return dpi;
+}
+
+int UiScale(int value) {
+    return MulDiv(value, static_cast<int>(UiDpi()), USER_DEFAULT_SCREEN_DPI);
+}
+
+SIZE UiWindowSizeForClient(int clientWidth, int clientHeight, DWORD style, DWORD exStyle) {
+    RECT rect {0, 0, clientWidth, clientHeight};
+    AdjustWindowRectExForDpi(&rect, style, FALSE, exStyle, UiDpi());
+    return SIZE {rect.right - rect.left, rect.bottom - rect.top};
+}
+
 void UiApplyFont(HWND hwnd, HFONT font) {
     SendMessageW(hwnd, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
 }

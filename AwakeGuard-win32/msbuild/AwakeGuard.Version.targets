@@ -5,10 +5,13 @@
     <AwakeGuardPatchedManifest>$(IntDir)AwakeGuard.app.manifest</AwakeGuardPatchedManifest>
   </PropertyGroup>
 
+  <!-- AdditionalManifestFiles is mt.exe (Manifest tool) metadata, not Link metadata.
+       Under <Link> it was silently ignored, so the exe shipped with no comctl32 v6
+       dependency (no SysLink controls) and no DPI awareness. -->
   <ItemDefinitionGroup>
-    <Link>
-      <AdditionalManifestFiles>$(AwakeGuardPatchedManifest)</AdditionalManifestFiles>
-    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(AwakeGuardPatchedManifest);%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
 
   <Target Name="AwakeGuardPrepareManifest" BeforeTargets="Link">
