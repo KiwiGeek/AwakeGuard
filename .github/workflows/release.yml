@@ -193,14 +193,14 @@ jobs:
           install: >-
             mingw-w64-i686-gcc
             mingw-w64-i686-cmake
-            mingw-w64-i686-make
+            mingw-w64-i686-ninja
 
       - name: Configure and build
         working-directory: AwakeGuard-9x-roflmao
         env:
           AWAKEGUARD_VERSION: ${{ needs.resolve-version.outputs.semver }}
         run: |
-          cmake -S . -B build -G "MinGW Makefiles" \
+          cmake -S . -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-9x.cmake \
             -DAWAKEGUARD_VERSION="$AWAKEGUARD_VERSION"
           cmake --build build
