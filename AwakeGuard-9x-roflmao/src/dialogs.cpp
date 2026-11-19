@@ -27,15 +27,20 @@ enum AboutControlId : int {
 };
 
 constexpr char kAboutClassName[] = "AwakeGuardAboutWindow";
-constexpr int kAboutWidth = 420;
-constexpr int kAboutHeight = 420;
+// Client-area size; the outer window size is derived with AdjustWindowRectEx so the
+// caption/border height (which differs between classic, Luna and Win10+) can't clip
+// the OK button.
+constexpr int kAboutClientWidth = 420;
+constexpr int kAboutClientHeight = 370;
+constexpr DWORD kAboutStyle = WS_CAPTION | WS_SYSMENU | WS_POPUP;
+constexpr DWORD kAboutExStyle = WS_EX_DLGMODALFRAME;
 
 HWND CreateAboutLabel(HWND parent, int x, int y, int w, int h, LPCSTR text, HFONT font, bool secondary) {
     const HWND label = CreateWindowExA(
         0,
         "STATIC",
         text,
-        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX | (secondary ? SS_WORDELLIPSIS : 0),
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         x,
         y,
         w,
@@ -92,7 +97,7 @@ void CenterWindowOnOwner(HWND window, HWND owner) {
 
 void LayoutAboutWindow(HWND window) {
     const int margin = 24;
-    const int contentWidth = kAboutWidth - margin * 2;
+    const int contentWidth = kAboutClientWidth - margin * 2;
     int y = margin;
 
     CreateAboutLabel(window, margin, y, contentWidth, 32, "AwakeGuard 9x ROFLMAO", UiTitleFont(), false);
@@ -135,8 +140,8 @@ void LayoutAboutWindow(HWND window) {
         "BUTTON",
         "OK",
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        kAboutWidth - margin - 96,
-        kAboutHeight - margin - 36,
+        kAboutClientWidth - margin - 96,
+        kAboutClientHeight - margin - 32,
         96,
         32,
         window,
@@ -278,16 +283,17 @@ void DialogsShowError(HWND owner, LPCSTR title, LPCSTR message, bool topmost) {
 void DialogsShowAbout(HWND owner) {
     EnsureAboutClassRegistered();
 
-    const DWORD style = WS_CAPTION | WS_SYSMENU | WS_POPUP;
+    RECT frame = {0, 0, kAboutClientWidth, kAboutClientHeight};
+    AdjustWindowRectEx(&frame, kAboutStyle, FALSE, kAboutExStyle);
     const HWND window = CreateWindowExA(
-        WS_EX_DLGMODALFRAME,
+        kAboutExStyle,
         kAboutClassName,
         "About AwakeGuard 9x ROFLMAO",
-        style,
+        kAboutStyle,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        kAboutWidth,
-        kAboutHeight,
+        frame.right - frame.left,
+        frame.bottom - frame.top,
         owner,
         nullptr,
         GetModuleHandleA(nullptr),

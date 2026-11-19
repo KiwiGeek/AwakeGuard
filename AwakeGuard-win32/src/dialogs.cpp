@@ -27,19 +27,24 @@ enum AboutControlId : int {
 };
 
 constexpr wchar_t kAboutClassName[] = L"AwakeGuardAboutWindow";
-constexpr int kAboutWidth = 420;
-constexpr int kAboutHeight = 400;
+// Client-area size in 96-DPI pixels (scaled with UiScale at creation time).
+constexpr int kAboutClientWidth = 420;
+constexpr int kAboutClientHeight = 360;
+constexpr DWORD kAboutStyle = WS_CAPTION | WS_SYSMENU | WS_POPUP;
+constexpr DWORD kAboutExStyle = WS_EX_DLGMODALFRAME;
 
+// x/y/w/h are in 96-DPI pixels. No ellipsis styles here: SS_*ELLIPSIS forces a
+// static control to single-line, which truncated the description.
 HWND CreateAboutLabel(HWND parent, int x, int y, int w, int h, LPCWSTR text, HFONT font, bool secondary) {
     const HWND label = CreateWindowExW(
         0,
         L"STATIC",
         text,
-        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX | (secondary ? SS_WORDELLIPSIS : 0),
-        x,
-        y,
-        w,
-        h,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
+        UiScale(x),
+        UiScale(y),
+        UiScale(w),
+        UiScale(h),
         parent,
         nullptr,
         GetModuleHandleW(nullptr),
@@ -57,10 +62,10 @@ HWND CreateAboutLink(HWND parent, int id, int x, int y, int w, int h, LPCWSTR ma
         WC_LINK,
         markup,
         WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-        x,
-        y,
-        w,
-        h,
+        UiScale(x),
+        UiScale(y),
+        UiScale(w),
+        UiScale(h),
         parent,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),
         GetModuleHandleW(nullptr),
@@ -92,7 +97,7 @@ void CenterWindowOnOwner(HWND window, HWND owner) {
 
 void LayoutAboutWindow(HWND window) {
     const int margin = 24;
-    const int contentWidth = kAboutWidth - margin * 2;
+    const int contentWidth = kAboutClientWidth - margin * 2;
     int y = margin;
 
     CreateAboutLabel(window, margin, y, contentWidth, 32, L"AwakeGuard", UiTitleFont(), false);
@@ -103,11 +108,11 @@ void LayoutAboutWindow(HWND window) {
         margin,
         y,
         contentWidth,
-        52,
+        60,
         L"A system-tray utility that temporarily keeps your PC awake and prevents automatic sleep, screensaver, and display lock.",
         UiBodyFont(),
         true);
-    y += 58;
+    y += 68;
 
     wchar_t versionLine[32];
     swprintf_s(
@@ -128,45 +133,45 @@ void LayoutAboutWindow(HWND window) {
         margin,
         y,
         contentWidth,
-        18,
+        20,
         L"<a href=\"https://github.com/kiwigeek\">@kiwigeek</a> on GitHub");
-    y += 22;
+    y += 24;
     CreateAboutLink(
         window,
         kAboutLink2,
         margin,
         y,
         contentWidth,
-        18,
+        20,
         L"<a href=\"mailto:joshua@penman.dev\">joshua@penman.dev</a>");
-    y += 22;
+    y += 24;
     CreateAboutLink(
         window,
         kAboutLink3,
         margin,
         y,
         contentWidth,
-        18,
+        20,
         L"<a href=\"https://ko-fi.com/joshpenman\">Support on Ko-fi</a>");
-    y += 22;
+    y += 24;
     CreateAboutLink(
         window,
         kAboutLink4,
         margin,
         y,
         contentWidth,
-        18,
+        20,
         L"<a href=\"https://joshua.penman.dev\">joshua.penman.dev</a>");
 
     const HWND okButton = CreateWindowExW(
         0,
         L"BUTTON",
         L"OK",
-        WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        kAboutWidth - margin - 96,
-        kAboutHeight - margin - 36,
-        96,
-        32,
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+        UiScale(kAboutClientWidth - margin - 96),
+        UiScale(kAboutClientHeight - margin - 32),
+        UiScale(96),
+        UiScale(32),
         window,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(kAboutOk)),
         GetModuleHandleW(nullptr),
@@ -322,16 +327,17 @@ void DialogsShowError(HWND owner, LPCWSTR title, LPCWSTR message, bool topmost) 
 void DialogsShowAbout(HWND owner) {
     EnsureAboutClassRegistered();
 
-    const DWORD style = WS_CAPTION | WS_SYSMENU | WS_POPUP;
+    const SIZE windowSize = UiWindowSizeForClient(
+        UiScale(kAboutClientWidth), UiScale(kAboutClientHeight), kAboutStyle, kAboutExStyle);
     const HWND window = CreateWindowExW(
-        WS_EX_DLGMODALFRAME,
+        kAboutExStyle,
         kAboutClassName,
         L"About AwakeGuard",
-        style,
+        kAboutStyle,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        kAboutWidth,
-        kAboutHeight,
+        windowSize.cx,
+        windowSize.cy,
         owner,
         nullptr,
         GetModuleHandleW(nullptr),
