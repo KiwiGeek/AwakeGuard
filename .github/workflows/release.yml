@@ -251,6 +251,17 @@ jobs:
             -DAWAKEGUARD_VERSION="$AWAKEGUARD_VERSION"
           cmake --build build
 
+      # Win95 RTM has MSVCRT20.DLL but not MSVCRT.DLL; fail if the link picked the wrong CRT.
+      - name: Check CRT import (must be MSVCRT20.DLL)
+        run: |
+          set -euo pipefail
+          imports="$(objdump -p AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe | grep -i 'DLL Name')"
+          echo "$imports"
+          if ! echo "$imports" | grep -qi 'msvcrt20\.dll'; then
+            echo "::error::9x ROFLMAO does not import MSVCRT20.DLL; it will not start on Windows 95 RTM."
+            exit 1
+          fi
+
       - name: Stage artifact
         run: |
           set -euo pipefail
