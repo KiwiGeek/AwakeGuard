@@ -51,7 +51,7 @@ jobs:
           path: AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe
           if-no-files-found: error
 
-  9x-roflmao:
+  roflmao-9x:
     name: 9x ROFLMAO (Win9x i686)
     runs-on: windows-latest
     defaults:
