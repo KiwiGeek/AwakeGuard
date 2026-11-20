@@ -83,7 +83,7 @@ void TrayInitialize(AppState& app) {
     app.trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     app.trayData.uCallbackMessage = WM_TRAYICON;
     app.trayData.hIcon = app.iconInactive;
-    lstrcpynA(app.trayData.szTip, "AwakeGuard 9x ROFLMAO", static_cast<int>(sizeof(app.trayData.szTip) / sizeof(char)));
+    lstrcpynA(app.trayData.szTip, "AwakeGuard 9x ROFLMAO", OsTrayTipChars());
     Shell_NotifyIconA(NIM_ADD, &app.trayData);
 }
 
@@ -113,7 +113,7 @@ void TrayUpdate(AppState& app) {
     app.trayData.uFlags = NIF_ICON | NIF_TIP;
     StatusStr tip = "AwakeGuard 9x ROFLMAO - ";
     tip += SessionStatusText(app.session);
-    lstrcpynA(app.trayData.szTip, tip.c_str(), static_cast<int>(sizeof(app.trayData.szTip) / sizeof(char)));
+    lstrcpynA(app.trayData.szTip, tip.c_str(), OsTrayTipChars());
     Shell_NotifyIconA(NIM_MODIFY, &app.trayData);
     UpdateTrayMenuState(app);
 }

@@ -69,10 +69,16 @@ DWORD OsSetThreadExecutionState(DWORD flags) {
     return g_setThreadExecutionState(flags);
 }
 
+int OsTrayTipChars() {
+    return OsIsWindows9x() ? kTrayTipCharsV1 : static_cast<int>(sizeof(((NOTIFYICONDATAA*)0)->szTip));
+}
+
 UINT OsNotifyIconDataSize(bool includeBalloonFields) {
     OsCompatInit();
     if (OsIsWindows9x()) {
-        return static_cast<UINT>(FIELD_OFFSET(NOTIFYICONDATAA, szTip) + sizeof(((NOTIFYICONDATAA*)0)->szTip));
+        // Original (shell32 4.0) layout: szTip[64], nothing after it. The MinGW
+        // struct has szTip[128], so sizeof-based sizes are wrong for Win95/NT4.
+        return static_cast<UINT>(FIELD_OFFSET(NOTIFYICONDATAA, szTip) + kTrayTipCharsV1);
     }
     if (includeBalloonFields) {
         return sizeof(NOTIFYICONDATAA);
