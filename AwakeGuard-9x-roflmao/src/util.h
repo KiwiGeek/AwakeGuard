@@ -18,3 +18,8 @@ bool FilesIdentical(const char* a, const char* b);
 bool DeletePathAllowReadonly(const char* path, TextStr& errorOut);
 void ShellOpen(const char* target);
 TextStr QuoteCommandArg(const char* value);
+
+// "--trace" on the command line: show a message box before each startup step,
+// so a hard crash on a museum OS can be pinned to the last box shown.
+void TraceInit();
+void Trace(const char* step);

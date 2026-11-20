@@ -74,7 +74,9 @@ void TurnOnForPreset(AppState& app, int presetIndex) {
 void TrayInitialize(AppState& app) {
     app.iconActive = LoadTrayIcon(IDI_TRAY_ACTIVE);
     app.iconInactive = LoadTrayIcon(IDI_TRAY_INACTIVE);
+    Trace("9. Tray icons loaded; next: tray menu");
     app.trayMenu = BuildTrayMenu(app);
+    Trace("10. Tray menu built; next: Shell_NotifyIcon");
 
     ZeroMemory(&app.trayData, sizeof(app.trayData));
     app.trayData.cbSize = OsNotifyIconDataSize(false);
@@ -85,6 +87,7 @@ void TrayInitialize(AppState& app) {
     app.trayData.hIcon = app.iconInactive;
     lstrcpynA(app.trayData.szTip, "AwakeGuard 9x ROFLMAO", OsTrayTipChars());
     Shell_NotifyIconA(NIM_ADD, &app.trayData);
+    Trace("11. Tray icon added");
 }
 
 void TrayDispose(AppState& app) {
