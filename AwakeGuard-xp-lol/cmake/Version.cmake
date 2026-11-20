@@ -1,7 +1,7 @@
 # Parse AWAKEGUARD_VERSION (e.g. 0.1.2 from tag v0.1.2) for resources and About UI.
 
 if(NOT DEFINED AWAKEGUARD_VERSION OR AWAKEGUARD_VERSION STREQUAL "")
-    set(AWAKEGUARD_VERSION "0.1.1" CACHE STRING "Semantic version (MAJOR.MINOR.PATCH)")
+    set(AWAKEGUARD_VERSION "0.0.0" CACHE STRING "Semantic version (MAJOR.MINOR.PATCH)")
 endif()
 
 set(_awakeguard_version "${AWAKEGUARD_VERSION}")

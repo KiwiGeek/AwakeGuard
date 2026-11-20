@@ -74,10 +74,10 @@ OSes*; the signature still helps SmartScreen on the PC that downloads them.
 - **Minor** (`0.1.2` → `0.2.0`) — new features, no breaking UX changes
 - **Major** (`0.2.0` → `1.0.0`) — breaking changes or “we’re calling it 1.0”
 
-**Local development default** (not used for CI releases) lives in
-[`Directory.Build.props`](Directory.Build.props) as `AwakeGuardVersion`. Update
-it when you cut a release so `dotnet run` / local MSBuild match what you’re
-working toward; CI always overrides from the tag on `release`.
+**Local builds** report version `0.0.0` — a fixed dev placeholder in
+[`Directory.Build.props`](Directory.Build.props), `AwakeGuard-win32/src/version.h`
+and both `cmake/Version.cmake` files. **Don't bump it**; CI always sets the real
+version from the tag on `release`. Seeing `0.0.0` in About means a dev build.
 
 **Do not** hardcode versions in About dialogs or `resource.rc` — they are fed
 from MSBuild / the tag at release time.

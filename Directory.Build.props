@@ -1,10 +1,10 @@
 <Project>
   <!--
-    Default version for local builds. Release CI overrides AwakeGuardVersion from the
+    Dev placeholder for local builds (never bump it). Release CI overrides AwakeGuardVersion from the
     exact git tag at release branch HEAD (e.g. v0.1.1 -> 0.1.1).
   -->
   <PropertyGroup>
-    <AwakeGuardVersion Condition="'$(AwakeGuardVersion)' == ''">0.1.1</AwakeGuardVersion>
+    <AwakeGuardVersion Condition="'$(AwakeGuardVersion)' == ''">0.0.0</AwakeGuardVersion>
     <Version Condition="'$(Version)' == ''">$(AwakeGuardVersion)</Version>
     <FileVersion Condition="'$(FileVersion)' == ''">$(AwakeGuardVersion).0</FileVersion>
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(AwakeGuardVersion)</InformationalVersion>
