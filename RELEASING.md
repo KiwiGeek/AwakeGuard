@@ -33,6 +33,33 @@ The workflow **fails** if:
 - The run is not on the `release` branch
 - `release` cannot fast-forward to `master` (diverged history)
 
+## Code signing
+
+Every `.exe` is Authenticode-signed with **Azure Artifact Signing** during the
+build (WPF exes are signed *before* zipping). Windows jobs use
+[`.github/actions/sign`](.github/actions/sign/action.yml) (`azure/artifact-signing-action`);
+the XP LOL job builds on Linux and signs with [jsign](https://github.com/ebourg/jsign).
+
+Authentication is GitHub OIDC → an Entra app registration with a federated
+credential for `repo:KiwiGeek/AwakeGuard:ref:refs/heads/release`. No secrets
+are stored; the workflow reads these **repository variables**
+(Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Example |
+| -------- | ------- |
+| `AZURE_CLIENT_ID` | App registration's Application (client) ID |
+| `AZURE_TENANT_ID` | Directory (tenant) ID |
+| `ARTIFACT_SIGNING_ENDPOINT` | `https://eus.codesigning.azure.net/` (must match the account's region) |
+| `ARTIFACT_SIGNING_ACCOUNT` | Signing account name |
+| `ARTIFACT_SIGNING_PROFILE` | Certificate profile name |
+
+The app registration needs the **Artifact Signing Certificate Profile Signer**
+role on the certificate profile (or the account).
+
+Note: the signing root (Microsoft Identity Verification Root CA 2020) is not in
+the XP or 9x root stores, so the museum builds show as unverified *on those
+OSes*; the signature still helps SmartScreen on the PC that downloads them.
+
 ## Version numbers
 
 **Canonical version for a release:** the git tag on the shipped commit.
