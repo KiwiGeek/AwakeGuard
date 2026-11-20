@@ -3,49 +3,54 @@
 #include "paths.h"
 #include "win32_common.h"
 
-#include <string>
-#include <vector>
-
 namespace {
 
-bool ReadFileText(const std::string& path, std::string& text) {
-    text.clear();
-    HANDLE file = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+// settings.json is tiny (one boolean); anything larger isn't ours.
+constexpr DWORD kMaxSettingsBytes = 4096;
+char g_settingsBuffer[kMaxSettingsBytes + 1];
+
+bool ReadSettingsText(const char* path, const char*& textOut) {
+    textOut = "";
+    HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) {
         return false;
     }
 
-    const DWORD size = GetFileSize(file, nullptr);
-    if (size == INVALID_FILE_SIZE || size == 0) {
-        CloseHandle(file);
-        return size == 0;
-    }
-
-    std::vector<char> buffer(size);
     DWORD read = 0;
-    const BOOL ok = ReadFile(file, buffer.data(), size, &read, nullptr);
+    const BOOL ok = ReadFile(file, g_settingsBuffer, kMaxSettingsBytes, &read, nullptr);
     CloseHandle(file);
     if (!ok) {
         return false;
     }
-
-    text.assign(buffer.begin(), buffer.begin() + read);
+    g_settingsBuffer[read] = '\0';
+    textOut = g_settingsBuffer;
     return true;
 }
 
-bool WriteFileText(const std::string& path, const std::string& text) {
-    const std::string dir = paths::DataDirectory();
-    CreateDirectoryA(dir.c_str(), nullptr);
+bool Contains(const char* haystack, const char* needle) {
+    const int needleLen = lstrlenA(needle);
+    for (const char* p = haystack; *p; ++p) {
+        int i = 0;
+        while (i < needleLen && p[i] == needle[i]) {
+            ++i;
+        }
+        if (i == needleLen) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    HANDLE file = CreateFileA(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+bool WriteFileText(const char* path, const char* text) {
+    CreateDirectoryA(paths::DataDirectory().c_str(), nullptr);
+
+    HANDLE file = CreateFileA(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) {
         return false;
     }
 
     DWORD written = 0;
-    const BOOL ok = !text.empty()
-        ? WriteFile(file, text.data(), static_cast<DWORD>(text.size()), &written, nullptr)
-        : WriteFile(file, "", 0, &written, nullptr);
+    const BOOL ok = WriteFile(file, text, static_cast<DWORD>(lstrlenA(text)), &written, nullptr);
     CloseHandle(file);
     return ok != FALSE;
 }
@@ -53,17 +58,16 @@ bool WriteFileText(const std::string& path, const std::string& text) {
 }  // namespace
 
 bool SettingsLoadStartWithWindows() {
-    std::string text;
-    if (!ReadFileText(paths::SettingsFilePath(), text)) {
+    const char* text = nullptr;
+    if (!ReadSettingsText(paths::SettingsFilePath().c_str(), text)) {
         return false;
     }
-    return text.find("\"StartWithWindows\": true") != std::string::npos ||
-           text.find("\"StartWithWindows\":true") != std::string::npos;
+    return Contains(text, "\"StartWithWindows\": true") || Contains(text, "\"StartWithWindows\":true");
 }
 
 void SettingsSaveStartWithWindows(bool enabled) {
-    const std::string json = enabled
+    const char* json = enabled
         ? "{\r\n  \"StartWithWindows\": true\r\n}\r\n"
         : "{\r\n  \"StartWithWindows\": false\r\n}\r\n";
-    WriteFileText(paths::SettingsFilePath(), json);
+    WriteFileText(paths::SettingsFilePath().c_str(), json);
 }

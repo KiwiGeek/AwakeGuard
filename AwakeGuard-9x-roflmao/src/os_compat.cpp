@@ -1,7 +1,6 @@
 #include "os_compat.h"
 
-#include <stdio.h>
-#include <string.h>
+#include "str.h"
 
 namespace {
 
@@ -108,8 +107,11 @@ bool OsGetUserDataRoot(char* path, UINT pathChars) {
     }
 
     // Win95 multi-user: C:\Windows\Profiles\<user>
-    snprintf(path, pathChars, "%s\\Profiles\\%s", windowsDir, userName);
-    path[pathChars - 1] = '\0';
+    PathStr profile = windowsDir;
+    profile.EnsureTrailingBackslash();
+    profile += "Profiles\\";
+    profile += userName;
+    lstrcpynA(path, profile.c_str(), static_cast<int>(pathChars));
 
     DWORD attrs = GetFileAttributesA(path);
     if (attrs == INVALID_FILE_ATTRIBUTES) {

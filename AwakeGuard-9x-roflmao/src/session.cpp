@@ -3,89 +3,82 @@
 #include "os_compat.h"
 #include "win32_common.h"
 
-#include <sstream>
-#include <vector>
-
 namespace {
 
 BOOL g_savedScreenSaveActive = TRUE;
 bool g_screenSaveCaptured = false;
 
-ULONGLONG FileTimeToMs(const FILETIME& ft) {
-    ULARGE_INTEGER ui {};
-    ui.LowPart = ft.dwLowDateTime;
-    ui.HighPart = ft.dwHighDateTime;
-    return ui.QuadPart / 10000ULL;
+// Times are kept in FILETIME ticks (100 ns) so only 64-bit add/compare is
+// needed; 64-bit division would pull in libgcc.
+constexpr ULONGLONG kTicksPerMinute = 60ULL * 10000000ULL;
+constexpr ULONGLONG kTicksPerDay = 24ULL * 60ULL * kTicksPerMinute;
+
+ULONGLONG FileTimeToTicks(const FILETIME& ft) {
+    return (static_cast<ULONGLONG>(ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
 }
 
-ULONGLONG NowMs() {
+FILETIME TicksToFileTime(ULONGLONG ticks) {
+    FILETIME ft;
+    ft.dwLowDateTime = static_cast<DWORD>(ticks);
+    ft.dwHighDateTime = static_cast<DWORD>(ticks >> 32);
+    return ft;
+}
+
+ULONGLONG NowTicks() {
     FILETIME ft {};
     GetSystemTimeAsFileTime(&ft);
-    return FileTimeToMs(ft);
+    return FileTimeToTicks(ft);
 }
 
-SYSTEMTIME LocalMidnightTomorrow() {
-    SYSTEMTIME now {};
-    GetLocalTime(&now);
-    SYSTEMTIME midnight = now;
+// Next local midnight, as UTC ticks.
+ULONGLONG LocalMidnightTomorrowTicks() {
+    SYSTEMTIME midnight {};
+    GetLocalTime(&midnight);
     midnight.wHour = 0;
     midnight.wMinute = 0;
     midnight.wSecond = 0;
     midnight.wMilliseconds = 0;
 
-    FILETIME ft {};
-    SystemTimeToFileTime(&midnight, &ft);
-    ULARGE_INTEGER ui {};
-    ui.LowPart = ft.dwLowDateTime;
-    ui.HighPart = ft.dwHighDateTime;
-    ui.QuadPart += 24ULL * 60 * 60 * 10000000ULL;
+    FILETIME localToday {};
+    SystemTimeToFileTime(&midnight, &localToday);
+    const FILETIME localTomorrow = TicksToFileTime(FileTimeToTicks(localToday) + kTicksPerDay);
 
-    FILETIME next {};
-    next.dwLowDateTime = ui.LowPart;
-    next.dwHighDateTime = ui.HighPart;
-    SYSTEMTIME out {};
-    FileTimeToSystemTime(&next, &out);
+    FILETIME utc {};
+    LocalFileTimeToFileTime(&localTomorrow, &utc);
+    return FileTimeToTicks(utc);
+}
+
+void AppendUnsigned(StatusStr& out, DWORD value) {
+    char digits[16];
+    wsprintfA(digits, "%lu", value);
+    out += digits;
+}
+
+StatusStr FormatRemaining(ULONGLONG remainingTicks) {
+    const DWORD totalMinutes = UDiv64To32(remainingTicks, static_cast<DWORD>(kTicksPerMinute));
+    StatusStr out;
+    if (totalMinutes >= 60) {
+        AppendUnsigned(out, totalMinutes / 60);
+        out += "h ";
+        AppendUnsigned(out, totalMinutes % 60);
+        out += "m";
+        return out;
+    }
+    AppendUnsigned(out, totalMinutes == 0 ? 1 : totalMinutes);
+    out += "m";
     return out;
 }
 
-ULONGLONG SystemTimeToMsLocal(const SYSTEMTIME& st) {
-    SYSTEMTIME local = st;
-    FILETIME ftLocal {};
-    SystemTimeToFileTime(&local, &ftLocal);
-    FILETIME ftUtc {};
-    LocalFileTimeToFileTime(&ftLocal, &ftUtc);
-    return FileTimeToMs(ftUtc);
-}
-
-std::string FormatRemainingMs(ULONGLONG remainingMs) {
-    const ULONGLONG totalMinutes = remainingMs / 60000ULL;
-    if (totalMinutes >= 60) {
-        const ULONGLONG hours = totalMinutes / 60;
-        const ULONGLONG minutes = totalMinutes % 60;
-        std::stringstream ss;
-        ss << hours << "h " << minutes << "m";
-        return ss.str();
-    }
-    const ULONGLONG minutes = totalMinutes == 0 ? 1 : totalMinutes;
-    std::stringstream ss;
-    ss << minutes << "m";
-    return ss.str();
-}
-
-std::string ProtectionPhrase(const SessionState& session) {
-    std::vector<std::string> parts;
+StatusStr ProtectionPhrase(const SessionState& session) {
+    StatusStr result;
     if (session.preventSleep && OsHasSetThreadExecutionState()) {
-        parts.push_back("no sleep");
+        result += "no sleep";
     }
     if (session.preventDisplayOff) {
-        parts.push_back("no screensaver");
-    }
-    std::string result;
-    for (size_t i = 0; i < parts.size(); ++i) {
-        if (i > 0) {
+        if (!result.empty()) {
             result += ", ";
         }
-        result += parts[i];
+        result += "no screensaver";
     }
     return result;
 }
@@ -138,11 +131,11 @@ void SessionStart(SessionState& session, int presetIndex) {
     switch (preset.kind) {
     case DurationKind::FixedMinutes:
         session.hasExpiry = true;
-        session.expiresAtMs = NowMs() + static_cast<ULONGLONG>(preset.fixedMinutes) * 60ULL * 1000ULL;
+        session.expiresAt = NowTicks() + static_cast<ULONGLONG>(preset.fixedMinutes) * kTicksPerMinute;
         break;
     case DurationKind::RestOfDay:
         session.hasExpiry = true;
-        session.expiresAtMs = SystemTimeToMsLocal(LocalMidnightTomorrow());
+        session.expiresAt = LocalMidnightTomorrowTicks();
         break;
     case DurationKind::Indefinite:
         session.hasExpiry = false;
@@ -178,28 +171,36 @@ void SessionCheckExpiry(SessionState& session, bool& expiredNow) {
     if (!session.isActive || !session.hasExpiry) {
         return;
     }
-    if (NowMs() >= session.expiresAtMs) {
+    if (NowTicks() >= session.expiresAt) {
         SessionStop(session);
         expiredNow = true;
     }
 }
 
-std::string SessionStatusText(const SessionState& session) {
+StatusStr SessionStatusText(const SessionState& session) {
     if (!session.isActive) {
-        return "Off - normal power and screensaver";
+        return StatusStr("Off - normal power and screensaver");
     }
 
-    const std::string protection = ProtectionPhrase(session);
+    const StatusStr protection = ProtectionPhrase(session);
     if (protection.empty()) {
-        return "On - (no protection active on this OS)";
-    }
-    if (!session.hasExpiry) {
-        return "On - " + protection + " (until you turn off)";
+        return StatusStr("On - (no protection active on this OS)");
     }
 
-    const ULONGLONG remaining = session.expiresAtMs > NowMs() ? session.expiresAtMs - NowMs() : 0;
-    if (remaining == 0) {
-        return "On - " + protection + " (expiring)";
+    StatusStr text = "On - ";
+    text += protection;
+    if (!session.hasExpiry) {
+        text += " (until you turn off)";
+        return text;
     }
-    return "On - " + protection + " (" + FormatRemainingMs(remaining) + " left)";
+
+    const ULONGLONG now = NowTicks();
+    if (session.expiresAt <= now) {
+        text += " (expiring)";
+        return text;
+    }
+    text += " (";
+    text += FormatRemaining(session.expiresAt - now);
+    text += " left)";
+    return text;
 }

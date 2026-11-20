@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "str.h"
 
 namespace paths {
 
@@ -9,19 +8,27 @@ constexpr char kAppFolderName[] = "AwakeGuard-9x-ROFLMAO";
 constexpr char kRunValueName[] = "AwakeGuard-9x-ROFLMAO";
 constexpr char kCleanupFlag[] = "--cleanup-source";
 
-std::string UserDataRootDirectory();
-std::string DataDirectory();
-std::string SettingsFilePath();
-std::string InstallDirectory();
-std::string CurrentExecutablePath();
+// The exe plus its .pdb if one sits next to it.
+struct ArtifactList {
+    PathStr items[2];
+    int count;
+};
+
+PathStr UserDataRootDirectory();
+PathStr DataDirectory();
+PathStr SettingsFilePath();
+PathStr InstallDirectory();
+PathStr CurrentExecutablePath();
 
 bool IsRunningFromInstallLocation();
-bool IsTransientDirectory(const std::string& directory);
-bool IsOnDesktopOrDownloads(const std::string& filePath = "");
+bool IsTransientDirectory(const char* directory);
+// Empty filePath means the running executable.
+bool IsOnDesktopOrDownloads(const char* filePath = "");
 
-std::vector<std::string> RelocateArtifactPaths(const std::string& sourceExecutablePath);
+ArtifactList RelocateArtifactPaths(const char* sourceExecutablePath);
 
-std::string TryGetCleanupSourceExecutable(const std::vector<std::string>& args);
-std::string FormatCleanupSourceArgument(const std::string& sourceExecutablePath);
+// Parses GetCommandLineA() for --cleanup-source; empty if absent.
+PathStr TryGetCleanupSourceExecutable();
+TextStr FormatCleanupSourceArgument(const char* sourceExecutablePath);
 
 }  // namespace paths

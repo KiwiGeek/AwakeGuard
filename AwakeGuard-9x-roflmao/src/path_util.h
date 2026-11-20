@@ -1,7 +1,10 @@
 #pragma once
 
-#include <string>
+#include "str.h"
 
-std::string PathGetFileName(const std::string& path);
-bool FilePathExists(const std::string& path);
-bool PathCopyFileOverwrite(const std::string& source, const std::string& destination, std::string& errorOut);
+PathStr PathGetFileName(const char* path);
+// Everything before the last slash; empty if there is none.
+PathStr PathGetParent(const char* path);
+bool FilePathExists(const char* path);
+// Returns nullptr on success, else a short error message.
+const char* PathCopyFileOverwrite(const char* source, const char* destination);

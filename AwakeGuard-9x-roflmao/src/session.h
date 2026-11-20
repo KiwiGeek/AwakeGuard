@@ -1,7 +1,7 @@
 #pragma once
 
+#include "str.h"
 #include "win32_common.h"
-#include <string>
 
 enum class DurationKind {
     FixedMinutes,
@@ -19,7 +19,7 @@ struct SessionState {
     bool preventSleep = true;
     bool preventDisplayOff = true;
     bool isActive = false;
-    ULONGLONG expiresAtMs = 0;
+    ULONGLONG expiresAt = 0;  // UTC FILETIME ticks (100 ns)
     bool hasExpiry = false;
     int selectedDurationIndex = 1;
 };
@@ -42,4 +42,4 @@ void SessionStart(SessionState& session, int presetIndex);
 void SessionStop(SessionState& session);
 void SessionRefresh(SessionState& session);
 void SessionCheckExpiry(SessionState& session, bool& expiredNow);
-std::string SessionStatusText(const SessionState& session);
+StatusStr SessionStatusText(const SessionState& session);

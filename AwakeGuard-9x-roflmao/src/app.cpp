@@ -49,14 +49,14 @@ void AppToggleSession(AppState& app) {
     }
 }
 
-bool AppInitialize(AppState& app, const std::string& cleanupSourceExecutable) {
+bool AppInitialize(AppState& app, const char* cleanupSourceExecutable) {
     if (!SettingsWindowCreate(app)) {
         return false;
     }
 
     TrayInitialize(app);
 
-    if (!cleanupSourceExecutable.empty()) {
+    if (cleanupSourceExecutable && cleanupSourceExecutable[0]) {
         SettingsWindowShow(app, false);
         CleanupOfferPrompt(app.settingsWindow, cleanupSourceExecutable);
         AppFinishStartupInitialization(app);

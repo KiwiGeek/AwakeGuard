@@ -77,18 +77,18 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-9x.cmake
           cmake --build build
 
-      # Win95 RTM has MSVCRT20.DLL but not MSVCRT.DLL; fail if the link picked the wrong CRT.
-      - name: Check CRT import (must be MSVCRT20.DLL)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Windows 95 RTM on a 386: allowed DLL imports only, PE version <= 4.0,
+      # and no instruction newer than the 80386 anywhere in the code.
+      - name: Check Windows 95 / 386 compatibility
+        shell: pwsh
         run: |
-          set -euo pipefail
-          exe=AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe
-          ls -l "$exe"
-          imports="$(objdump -p "$exe" | grep -i 'DLL Name')"
-          echo "$imports"
-          if ! echo "$imports" | grep -qi 'msvcrt20\.dll'; then
-            echo "::error::9x ROFLMAO does not import MSVCRT20.DLL; it will not start on Windows 95 RTM."
-            exit 1
-          fi
+          python -m pip install --disable-pip-version-check -q capstone==5.0.7
+          python scripts/check-9x-exe.py AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

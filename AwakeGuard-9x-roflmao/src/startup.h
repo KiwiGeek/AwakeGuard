@@ -1,7 +1,6 @@
 #pragma once
 
 #include "win32_common.h"
-#include <string>
 
 struct AppState;
 

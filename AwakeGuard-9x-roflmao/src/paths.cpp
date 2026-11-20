@@ -4,178 +4,182 @@
 #include "path_util.h"
 #include "util.h"
 
-#include <vector>
-
 namespace paths {
 
 namespace {
 
-bool IsUnderDirectory(const std::string& path, const std::string& parent) {
-    char fullPath[MAX_PATH] {};
-    char fullParent[MAX_PATH] {};
-    if (!GetFullPathNameA(path.c_str(), MAX_PATH, fullPath, nullptr) ||
-        !GetFullPathNameA(parent.c_str(), MAX_PATH, fullParent, nullptr)) {
+bool IsUnderDirectory(const char* path, const char* parent) {
+    PathStr fullPath;
+    PathStr fullParent;
+    if (!GetFullPathNameA(path, MAX_PATH, fullPath.Buffer(), nullptr) ||
+        !GetFullPathNameA(parent, MAX_PATH, fullParent.Buffer(), nullptr)) {
         return false;
     }
-
-    std::string normalizedPath = fullPath;
-    std::string normalizedParent = fullParent;
-    if (!normalizedPath.empty() && normalizedPath.back() != '\\') {
-        normalizedPath += '\\';
-    }
-    if (!normalizedParent.empty() && normalizedParent.back() != '\\') {
-        normalizedParent += '\\';
-    }
-    return _strnicmp(normalizedPath.c_str(), normalizedParent.c_str(), normalizedParent.size()) == 0;
+    fullPath.SyncLength();
+    fullParent.SyncLength();
+    fullPath.EnsureTrailingBackslash();
+    fullParent.EnsureTrailingBackslash();
+    return StrStartsWithI(fullPath.c_str(), fullParent.c_str());
 }
 
-void AppendFolderIfFound(int folderId, std::vector<std::string>& roots) {
-    char buffer[MAX_PATH] {};
-    if (OsGetSpecialFolderPath(folderId, false, buffer, MAX_PATH)) {
-        roots.push_back(buffer);
+struct RootList {
+    PathStr items[2];
+    int count;
+};
+
+RootList TransientInstallRoots() {
+    RootList roots;
+    roots.count = 0;
+
+    PathStr desktop;
+    if (OsGetSpecialFolderPath(CSIDL_DESKTOP, false, desktop.Buffer(), MAX_PATH)) {
+        desktop.SyncLength();
+        roots.items[roots.count++] = desktop;
     }
-}
 
-std::vector<std::string> TransientInstallRoots() {
-    std::vector<std::string> roots;
-    AppendFolderIfFound(CSIDL_DESKTOP, roots);
-
-    char profile[MAX_PATH] {};
-    if (OsGetSpecialFolderPath(CSIDL_PROFILE, false, profile, MAX_PATH)) {
-        std::string downloads = profile;
-        if (!downloads.empty() && downloads.back() != '\\') {
-            downloads += '\\';
-        }
+    PathStr downloads;
+    if (OsGetSpecialFolderPath(CSIDL_PROFILE, false, downloads.Buffer(), MAX_PATH)) {
+        downloads.SyncLength();
+        downloads.EnsureTrailingBackslash();
         downloads += "Downloads";
-        roots.push_back(downloads);
+        roots.items[roots.count++] = downloads;
     }
     return roots;
 }
 
 }  // namespace
 
-std::string UserDataRootDirectory() {
-    char buffer[MAX_PATH] {};
-    if (OsGetSpecialFolderPath(CSIDL_LOCAL_APPDATA, true, buffer, MAX_PATH)) {
-        return buffer;
+PathStr UserDataRootDirectory() {
+    PathStr root;
+    if (OsGetSpecialFolderPath(CSIDL_LOCAL_APPDATA, true, root.Buffer(), MAX_PATH) ||
+        OsGetUserDataRoot(root.Buffer(), MAX_PATH)) {
+        root.SyncLength();
+        return root;
     }
-    if (OsGetUserDataRoot(buffer, MAX_PATH)) {
-        return buffer;
-    }
-    return "";
+    return PathStr();
 }
 
-std::string DataDirectory() {
-    std::string dir = UserDataRootDirectory();
+PathStr DataDirectory() {
+    PathStr dir = UserDataRootDirectory();
     if (dir.empty()) {
-        return "";
+        return dir;
     }
-    if (dir.back() != '\\') {
-        dir += '\\';
-    }
+    dir.EnsureTrailingBackslash();
     dir += kAppFolderName;
     return dir;
 }
 
-std::string SettingsFilePath() {
-    std::string dir = DataDirectory();
+PathStr SettingsFilePath() {
+    PathStr dir = DataDirectory();
     if (dir.empty()) {
-        return "";
+        return dir;
     }
-    if (dir.back() != '\\') {
-        dir += '\\';
-    }
+    dir.EnsureTrailingBackslash();
     dir += "settings.json";
     return dir;
 }
 
-std::string InstallDirectory() {
+PathStr InstallDirectory() {
     return DataDirectory();
 }
 
-std::string CurrentExecutablePath() {
+PathStr CurrentExecutablePath() {
     return GetExePath();
 }
 
 bool IsRunningFromInstallLocation() {
-    const std::string current = CurrentExecutablePath();
-    const std::string install = InstallDirectory();
+    const PathStr current = CurrentExecutablePath();
+    const PathStr install = InstallDirectory();
     if (current.empty() || install.empty()) {
         return false;
     }
-    return IsUnderDirectory(current, install);
+    return IsUnderDirectory(current.c_str(), install.c_str());
 }
 
-bool IsTransientDirectory(const std::string& directory) {
-    if (directory.empty()) {
+bool IsTransientDirectory(const char* directory) {
+    if (!directory || !directory[0]) {
         return false;
     }
-    char full[MAX_PATH] {};
-    if (!GetFullPathNameA(directory.c_str(), MAX_PATH, full, nullptr)) {
+    PathStr full;
+    if (!GetFullPathNameA(directory, MAX_PATH, full.Buffer(), nullptr)) {
         return false;
     }
-    const std::vector<std::string> roots = TransientInstallRoots();
-    for (size_t i = 0; i < roots.size(); ++i) {
-        if (IsUnderDirectory(full, roots[i])) {
+    full.SyncLength();
+    const RootList roots = TransientInstallRoots();
+    for (int i = 0; i < roots.count; ++i) {
+        if (IsUnderDirectory(full.c_str(), roots.items[i].c_str())) {
             return true;
         }
     }
     return false;
 }
 
-bool IsOnDesktopOrDownloads(const std::string& filePath) {
-    std::string path = filePath.empty() ? CurrentExecutablePath() : filePath;
-    const size_t pos = path.find_last_of("\\/");
-    if (pos == std::string::npos) {
+bool IsOnDesktopOrDownloads(const char* filePath) {
+    const PathStr path = (filePath && filePath[0]) ? PathStr(filePath) : CurrentExecutablePath();
+    if (path.FindLastSlash() < 0) {
         return false;
     }
-    return IsTransientDirectory(path.substr(0, pos));
+    return IsTransientDirectory(PathGetParent(path.c_str()).c_str());
 }
 
-std::vector<std::string> RelocateArtifactPaths(const std::string& sourceExecutablePath) {
-    std::vector<std::string> artifacts;
+ArtifactList RelocateArtifactPaths(const char* sourceExecutablePath) {
+    ArtifactList artifacts;
+    artifacts.count = 0;
 
-    char full[MAX_PATH] {};
-    if (!GetFullPathNameA(sourceExecutablePath.c_str(), MAX_PATH, full, nullptr)) {
+    PathStr full;
+    if (!GetFullPathNameA(sourceExecutablePath, MAX_PATH, full.Buffer(), nullptr)) {
         return artifacts;
     }
+    full.SyncLength();
+    artifacts.items[artifacts.count++] = full;
 
-    artifacts.push_back(full);
-
-    std::string pdbPath = full;
-    const size_t dot = pdbPath.find_last_of('.');
-    if (dot != std::string::npos) {
-        pdbPath = pdbPath.substr(0, dot);
+    PathStr pdbPath = full;
+    const int dot = pdbPath.FindLast('.');
+    if (dot > pdbPath.FindLastSlash()) {
+        pdbPath.Truncate(dot);
     }
     pdbPath += ".pdb";
-    if (FilePathExists(pdbPath)) {
-        artifacts.push_back(pdbPath);
+    if (FilePathExists(pdbPath.c_str())) {
+        artifacts.items[artifacts.count++] = pdbPath;
     }
 
     return artifacts;
 }
 
-std::string TryGetCleanupSourceExecutable(const std::vector<std::string>& args) {
-    for (size_t i = 0; i < args.size(); ++i) {
-        if (_stricmp(args[i].c_str(), kCleanupFlag) == 0 && i + 1 < args.size()) {
-            char full[MAX_PATH] {};
-            if (GetFullPathNameA(args[i + 1].c_str(), MAX_PATH, full, nullptr)) {
-                return full;
+PathStr TryGetCleanupSourceExecutable() {
+    TextStr prefix = kCleanupFlag;
+    prefix += "=";
+
+    const char* cursor = GetCommandLineA();
+    PathStr arg;
+    CmdLineNextArg(cursor, arg);  // skip argv[0]
+    while (CmdLineNextArg(cursor, arg)) {
+        const char* value = nullptr;
+        PathStr next;
+        if (StrEqualsI(arg.c_str(), kCleanupFlag)) {
+            if (!CmdLineNextArg(cursor, next)) {
+                break;
             }
+            value = next.c_str();
+        } else if (StrStartsWithI(arg.c_str(), prefix.c_str())) {
+            value = arg.c_str() + prefix.size();
         }
-        const std::string prefix = std::string(kCleanupFlag) + "=";
-        if (_strnicmp(args[i].c_str(), prefix.c_str(), prefix.size()) == 0) {
-            char full[MAX_PATH] {};
-            if (GetFullPathNameA(args[i].substr(prefix.size()).c_str(), MAX_PATH, full, nullptr)) {
+        if (value) {
+            PathStr full;
+            if (GetFullPathNameA(value, MAX_PATH, full.Buffer(), nullptr)) {
+                full.SyncLength();
                 return full;
             }
         }
     }
-    return "";
+    return PathStr();
 }
 
-std::string FormatCleanupSourceArgument(const std::string& sourceExecutablePath) {
-    return std::string(kCleanupFlag) + " " + QuoteCommandArg(sourceExecutablePath);
+TextStr FormatCleanupSourceArgument(const char* sourceExecutablePath) {
+    TextStr out = kCleanupFlag;
+    out += " ";
+    out += QuoteCommandArg(sourceExecutablePath);
+    return out;
 }
 
 }  // namespace paths
