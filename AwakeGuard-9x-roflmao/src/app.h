@@ -22,7 +22,8 @@ struct AppState {
     DWORD lastTrayClickTick = 0;
 };
 
-bool AppInitialize(AppState& app, const std::string& cleanupSourceExecutable);
+// cleanupSourceExecutable: --cleanup-source path, or "" when absent.
+bool AppInitialize(AppState& app, const char* cleanupSourceExecutable);
 void AppShutdown(AppState& app);
 void AppOnSessionChanged(AppState& app, bool showExpiryBalloon);
 void AppToggleSession(AppState& app);

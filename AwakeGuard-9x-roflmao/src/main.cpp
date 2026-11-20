@@ -9,10 +9,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, PSTR, int) {
     OsCompatInit();
     UiInitialize();
 
-    const std::vector<std::string> args = ParseCommandLineArgs();
-    const std::string cleanupSource = paths::TryGetCleanupSourceExecutable(args);
+    const PathStr cleanupSource = paths::TryGetCleanupSourceExecutable();
 
-    if (!AppInitialize(g_app, cleanupSource)) {
+    if (!AppInitialize(g_app, cleanupSource.c_str())) {
         MessageBoxA(nullptr, "Failed to initialize AwakeGuard 9x ROFLMAO.", "AwakeGuard 9x ROFLMAO", MB_ICONERROR | MB_OK);
         return 1;
     }

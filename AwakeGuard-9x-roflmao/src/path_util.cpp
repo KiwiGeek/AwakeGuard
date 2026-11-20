@@ -1,34 +1,35 @@
 #include "path_util.h"
 
-#include <windows.h>
-
-bool FilePathExists(const std::string& path) {
-    const DWORD attrs = GetFileAttributesA(path.c_str());
+bool FilePathExists(const char* path) {
+    const DWORD attrs = GetFileAttributesA(path);
     return attrs != INVALID_FILE_ATTRIBUTES;
 }
 
-std::string PathGetFileName(const std::string& path) {
-    const size_t slash = path.find_last_of("\\/");
-    if (slash == std::string::npos) {
-        return path;
+PathStr PathGetFileName(const char* path) {
+    const PathStr full = path;
+    const int slash = full.FindLastSlash();
+    if (slash < 0) {
+        return full;
     }
-    if (slash + 1 >= path.size()) {
-        return std::string();
-    }
-    return path.substr(slash + 1);
+    return PathStr(full.c_str() + slash + 1);
 }
 
-bool PathCopyFileOverwrite(const std::string& source, const std::string& destination, std::string& errorOut) {
-    errorOut.clear();
+PathStr PathGetParent(const char* path) {
+    PathStr parent = path;
+    const int slash = parent.FindLastSlash();
+    if (slash < 0) {
+        return PathStr();
+    }
+    parent.Truncate(slash);
+    return parent;
+}
+
+const char* PathCopyFileOverwrite(const char* source, const char* destination) {
     if (!FilePathExists(source)) {
-        errorOut = "Source file not found.";
-        return false;
+        return "Source file not found.";
     }
-
-    if (!CopyFileA(source.c_str(), destination.c_str(), FALSE)) {
-        errorOut = "CopyFile failed.";
-        return false;
+    if (!CopyFileA(source, destination, FALSE)) {
+        return "CopyFile failed.";
     }
-
-    return true;
+    return nullptr;
 }

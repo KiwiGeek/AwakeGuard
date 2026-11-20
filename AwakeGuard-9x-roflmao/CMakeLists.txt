@@ -19,9 +19,15 @@ foreach(_icon IN ITEMS AwakeGuard.ico tray-active.ico tray-inactive.ico)
     endif()
 endforeach()
 
-add_library(awakeguard-9x-stubs OBJECT src/win95_stubs.c)
-
+# No C/C++ runtime is linked (-nostdlib below). MSYS2's prebuilt CRT, libgcc
+# and libstdc++ are compiled for Pentium 4 (LOCK CMPXCHG, CMOV, SSE), which
+# a 386/486 can't run and Windows 95 can't run on any CPU (it doesn't save SSE
+# state). Every instruction in the exe comes from these sources, built with
+# -march=i386; scripts/check-9x-exe.py enforces that in CI.
 add_executable(AwakeGuard-9x-ROFLMAO WIN32
+    src/rt_entry.cpp
+    src/rt_mem.c
+    src/str.cpp
     src/main.cpp
     src/app.cpp
     src/session.cpp
@@ -40,8 +46,6 @@ add_executable(AwakeGuard-9x-ROFLMAO WIN32
     "${AWAKEGUARD_GENERATED_DIR}/app.manifest"
 )
 
-target_sources(AwakeGuard-9x-ROFLMAO PRIVATE $<TARGET_OBJECTS:awakeguard-9x-stubs>)
-
 target_include_directories(AwakeGuard-9x-ROFLMAO PRIVATE
     src
     "${AWAKEGUARD_GENERATED_DIR}"
@@ -59,28 +63,32 @@ target_compile_definitions(AwakeGuard-9x-ROFLMAO PRIVATE
     _WIN32_WINNT=0x0400
 )
 
+# Import libraries only; every DLL here ships with Windows 95 RTM.
 target_link_libraries(AwakeGuard-9x-ROFLMAO PRIVATE
+    kernel32
     user32
     gdi32
     shell32
     advapi32
     comctl32
-    ole32
 )
 
 target_compile_options(AwakeGuard-9x-ROFLMAO PRIVATE
-    -mcrtdll=msvcrt20
+    $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti -fno-threadsafe-statics>
+    $<$<COMPILE_LANGUAGE:C,CXX>:-fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector -fcf-protection=none>
+    # Keep the assembler from using P6-only multi-byte NOPs (0F 1F) for padding.
+    $<$<COMPILE_LANGUAGE:C,CXX>:-Wa,-march=i386>
 )
 
+# Stop GCC from compiling these loops into calls to memcpy/memset themselves.
+set_source_files_properties(src/rt_mem.c PROPERTIES
+    COMPILE_OPTIONS "-fno-builtin;-fno-tree-loop-distribute-patterns")
+
 target_link_options(AwakeGuard-9x-ROFLMAO PRIVATE
-    -s  # strip symbols; unstripped static libstdc++ roughly doubles the exe
-    # Must also be on the link line: the CRT import library is chosen at link time.
-    # Without it the exe imports msvcrt.dll, which Windows 95 RTM doesn't ship.
-    -mcrtdll=msvcrt20
-    -static
-    -static-libgcc
-    -static-libstdc++
+    -nostdlib
+    -s
     "-Wl,--subsystem,windows:4.00"
+    "-Wl,-e,_WinMainCRTStartup"
 )
 
 set_target_properties(AwakeGuard-9x-ROFLMAO PROPERTIES

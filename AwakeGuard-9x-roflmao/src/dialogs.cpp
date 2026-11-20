@@ -5,8 +5,6 @@
 #include "util.h"
 #include "version.h"
 
-#include <cstdio>
-
 namespace {
 
 struct ConfirmContext {
@@ -109,13 +107,13 @@ void LayoutAboutWindow(HWND window) {
         y,
         contentWidth,
         64,
-        "Museum edition for Windows 95/98/ME and up. Disables the screensaver on 9x; prevents sleep on Windows 2000+ via SetThreadExecutionState. MinGW i686.",
+        "Museum edition for Windows 95/98/ME and up, on a 386 or newer. Disables the screensaver on 9x; prevents sleep on Windows 2000+ via SetThreadExecutionState.",
         UiBodyFont(),
         true);
     y += 70;
 
-    char versionLine[48];
-    sprintf(
+    char versionLine[64];
+    wsprintfA(
         versionLine,
         "Version %u.%u.%u (9x ROFLMAO)",
         static_cast<unsigned>(AWAKEGUARD_VERSION_MAJOR),

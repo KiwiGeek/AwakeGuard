@@ -30,7 +30,7 @@ void UpdateTrayMenuState(AppState& app) {
     if (!app.trayMenu) {
         return;
     }
-    const std::string status = SessionStatusText(app.session);
+    const StatusStr status = SessionStatusText(app.session);
     ModifyMenuA(app.trayMenu, 0, MF_BYPOSITION | MF_STRING | MF_GRAYED, 0, status.c_str());
     EnableMenuItem(app.trayMenu, 2, MF_BYCOMMAND | (app.session.isActive ? MF_ENABLED : MF_GRAYED));
 }
@@ -108,11 +108,11 @@ void TrayDispose(AppState& app) {
 }
 
 void TrayUpdate(AppState& app) {
-    const std::string status = SessionStatusText(app.session);
     app.trayData.cbSize = OsNotifyIconDataSize(false);
     app.trayData.hIcon = app.session.isActive ? app.iconActive : app.iconInactive;
     app.trayData.uFlags = NIF_ICON | NIF_TIP;
-    const std::string tip = "AwakeGuard 9x ROFLMAO - " + status;
+    StatusStr tip = "AwakeGuard 9x ROFLMAO - ";
+    tip += SessionStatusText(app.session);
     lstrcpynA(app.trayData.szTip, tip.c_str(), static_cast<int>(sizeof(app.trayData.szTip) / sizeof(char)));
     Shell_NotifyIconA(NIM_MODIFY, &app.trayData);
     UpdateTrayMenuState(app);
@@ -150,7 +150,7 @@ LRESULT TrayHandleMessage(AppState& app, HWND hwnd, UINT msg, WPARAM wParam, LPA
             UpdateTrayMenuState(app);
             SetForegroundWindow(hwnd);
             const UINT cmd = TrackPopupMenu(app.trayMenu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.x, pt.y, 0, hwnd, nullptr);
-            PostMessageW(hwnd, WM_NULL, 0, 0);
+            PostMessageA(hwnd, WM_NULL, 0, 0);
             switch (cmd) {
             case 1:
                 SettingsWindowShow(app, true);

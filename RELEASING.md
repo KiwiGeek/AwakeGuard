@@ -140,7 +140,7 @@ On GitHub **Releases**:
 | -------- | ----------- |
 | `AwakeGuard-win32-{x64,x86,arm64}.exe` | Native MSVC, no runtime |
 | `AwakeGuard-win32-x86-xp-lol.exe` | MinGW museum build for Windows XP (32-bit only; not the same binary as `win32-x86`) |
-| `AwakeGuard-win32-x86-9x-roflmao.exe` | MinGW museum build for Windows 95 / 98 / ME (32-bit only; ANSI tray, `MSVCRT20`) |
+| `AwakeGuard-win32-x86-9x-roflmao.exe` | MinGW museum build for Windows 95 / 98 / ME (32-bit only; ANSI tray, no C runtime, runs on a 386) |
 | `AwakeGuard-wpf-framework-dependent-win-{x64,x86,arm64}.zip` | Needs .NET 10 Desktop Runtime |
 | `AwakeGuard-wpf-self-contained-win-{x64,x86,arm64}.zip` | Bundles runtime |
 

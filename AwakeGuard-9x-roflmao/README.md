@@ -26,7 +26,7 @@ This build is **ANSI** (`WinMain`, `Shell_NotifyIconA`, narrow paths) for real *
 
 ## Build (local cross-compile)
 
-Ubuntu’s `gcc-mingw-w64-i686` (GCC 13) does **not** support `-mcrtdll=msvcrt20`. Use **MSYS2 MinGW32** (see below) or a newer MinGW-w64 GCC 14+.
+Any MinGW-w64 i686 GCC works (MSYS2 MinGW32, or Ubuntu's `g++-mingw-w64-i686`): the exe links no C/C++ runtime, so the toolchain's runtime libraries don't matter.
 
 ```bash
 cd AwakeGuard-9x-roflmao
@@ -65,12 +65,12 @@ Requires [MSYS2](https://www.msys2.org/) with `mingw-w64-i686-gcc`, `cmake`, `ma
 
 1. Copy `AwakeGuard-9x-ROFLMAO.exe` to the VM.
 2. Run once; use the tray icon (right-click for menu).
-3. **Windows 95** needs the tray icon shell (typically **IE 4** / Active Desktop era). Plain 95 without updated shell may not show tray icons. The binary targets stock 95 CRT/shell DLLs (`MSVCRT20`, `KERNEL32`, `USER32`, `GDI32`, `SHELL32`, `ADVAPI32` for Run-key only—no CryptoAPI, no `SHLWAPI`).
+3. **Windows 95** needs the tray icon shell (typically **IE 4** / Active Desktop era). Plain 95 without updated shell may not show tray icons. The binary imports only stock Win95 DLLs (`KERNEL32`, `USER32`, `GDI32`, `SHELL32`, `COMCTL32`, `ADVAPI32` for Run-key only—no C runtime, no CryptoAPI, no `SHLWAPI`).
 4. Optional: use “Start with Windows” to copy into AppData and register Run.
 
-**C runtime:** the build uses MinGW **`-mcrtdll=msvcrt20`**, so it loads **`MSVCRT20.DLL`** from `C:\Windows\System` (present on stock Win95). You do **not** need to ship `MSVCRT.DLL` unless you switch the toolchain back to the default `msvcrt` target.
+**No runtime, 386 and up:** the exe is linked with `-nostdlib` and has its own entry point (`src/rt_entry.cpp`), `mem*` functions (`src/rt_mem.c`) and fixed-size strings (`src/str.h`) instead of the C/C++ standard library. MinGW's prebuilt CRT, libgcc and libstdc++ are compiled for Pentium 4 (`LOCK CMPXCHG`, `CMOV`, SSE), which a 386/486 can't execute and Windows 95 can't run on any CPU. Our code is built with `-march=i386`, and CI runs [`scripts/check-9x-exe.py`](../scripts/check-9x-exe.py) to reject any non-386 instruction or non-Win95 DLL import. So: no `std::` in this project, and keep stack frames under 4 KB (no `__chkstk`).
 
-**Floppy / VM:** `.\scripts\prepare-floppy.ps1` (strips the exe to fit one 1.44M disk). No CRT file on the floppy. Test on real 486+ hardware or emulators like 86Box—not PCjs (80386 CPU lacks 486 atomics).
+**Floppy / VM:** `.\scripts\prepare-floppy.ps1` stages a 1.44M disk image (the exe fits on one) for real 386+ hardware, 86Box, or the PCjs Windows 95 machine (a Compaq DeskPro 386).
 
 Icons are shared from `../assets/` (run `python scripts/generate-icons.py` at repo root if missing).
 
@@ -78,7 +78,7 @@ Icons are shared from `../assets/` (run `python scripts/generate-icons.py` at re
 
 | | **9x ROFLMAO** | **XP LOL** |
 |---|-------------|------------|
-| Target | `WINVER` 4.0, subsystem 4.10 | `WINVER` 5.01, subsystem 5.01 |
+| Target | `WINVER` 4.0, subsystem 4.0, 80386 | `WINVER` 5.01, subsystem 5.01 |
 | Sleep API | Dynamic load (2000+) | Always available |
 | AppData | `%AppData%` fallback | `%LocalAppData%` |
 | Manifest | No Comctl32 v6 | Comctl32 v6 |
