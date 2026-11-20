@@ -1,0 +1,33 @@
+name: Sign with Azure Artifact Signing
+description: >
+  Log in to Azure via OIDC and Authenticode-sign files with Azure Artifact Signing.
+  Windows runners only (uses signtool under the hood). Config comes from repo variables;
+  see RELEASING.md.
+
+inputs:
+  files:
+    description: Newline-separated absolute paths of files to sign.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Azure login (OIDC)
+      uses: azure/login@v2
+      with:
+        client-id: ${{ env.AZURE_CLIENT_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        allow-no-subscriptions: true
+
+    - name: Sign
+      uses: azure/artifact-signing-action@v2.0.0
+      with:
+        endpoint: ${{ env.ARTIFACT_SIGNING_ENDPOINT }}
+        signing-account-name: ${{ env.ARTIFACT_SIGNING_ACCOUNT }}
+        certificate-profile-name: ${{ env.ARTIFACT_SIGNING_PROFILE }}
+        files: ${{ inputs.files }}
+        file-digest: SHA256
+        timestamp-rfc3161: http://timestamp.acs.microsoft.com
+        timestamp-digest: SHA256
+        description: AwakeGuard
+        description-url: https://github.com/KiwiGeek/AwakeGuard
