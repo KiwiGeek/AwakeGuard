@@ -1,0 +1,98 @@
+name: Museum builds
+
+# Unsigned XP LOL / 9x ROFLMAO builds on PRs and master, so toolchain breakage
+# shows up before a release. Steps mirror release.yml (minus version + signing).
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xp-lol:
+    name: XP LOL (WinXP i686)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MinGW i686 and Pillow
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-mingw-w64-i686-win32 \
+            g++-mingw-w64-i686-win32 \
+            binutils-mingw-w64-i686 \
+            python3-pil
+
+      - name: Generate XP-compatible icons (BMP ICO, not PNG-in-ICO)
+        run: python3 scripts/generate-icons.py
+
+      - name: Configure and build
+        working-directory: AwakeGuard-xp-lol
+        run: |
+          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-xp.cmake
+          cmake --build build
+
+      - name: Show size and imports
+        run: |
+          exe=AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe
+          ls -l "$exe"
+          i686-w64-mingw32-objdump -p "$exe" | grep -i 'DLL Name'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AwakeGuard-XP-LOL-unsigned
+          path: AwakeGuard-xp-lol/build/AwakeGuard-XP-LOL.exe
+          if-no-files-found: error
+
+  9x-roflmao:
+    name: 9x ROFLMAO (Win9x i686)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 MinGW32
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          update: true
+          install: >-
+            mingw-w64-i686-gcc
+            mingw-w64-i686-cmake
+            mingw-w64-i686-ninja
+
+      - name: Configure and build
+        working-directory: AwakeGuard-9x-roflmao
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-i686-9x.cmake
+          cmake --build build
+
+      # Win95 RTM has MSVCRT20.DLL but not MSVCRT.DLL; fail if the link picked the wrong CRT.
+      - name: Check CRT import (must be MSVCRT20.DLL)
+        run: |
+          set -euo pipefail
+          exe=AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe
+          ls -l "$exe"
+          imports="$(objdump -p "$exe" | grep -i 'DLL Name')"
+          echo "$imports"
+          if ! echo "$imports" | grep -qi 'msvcrt20\.dll'; then
+            echo "::error::9x ROFLMAO does not import MSVCRT20.DLL; it will not start on Windows 95 RTM."
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AwakeGuard-9x-ROFLMAO-unsigned
+          path: AwakeGuard-9x-roflmao/build/AwakeGuard-9x-ROFLMAO.exe
+          if-no-files-found: error
