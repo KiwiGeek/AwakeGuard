@@ -199,7 +199,7 @@ LRESULT HandleStaticColor(WPARAM wParam, LPARAM lParam) {
 
     SetBkMode(dc, TRANSPARENT);
     if (tag == kStaticPanel) {
-        SetTextColor(dc, UiTextColor());
+        SetTextColor(dc, GetSysColor(COLOR_WINDOWTEXT));  // panel uses COLOR_WINDOW
         return reinterpret_cast<LRESULT>(UiPanelBrush());
     }
 
@@ -218,6 +218,7 @@ bool SettingsWindowCreate(AppState& app) {
     wc.hbrBackground = UiBackgroundBrush();
     wc.lpszClassName = kSettingsClassName;
     RegisterClassExA(&wc);
+    Trace("5. Window class registered; next: CreateWindowEx");
 
     const DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
     app.settingsWindow = CreateWindowExA(
@@ -239,8 +240,11 @@ bool SettingsWindowCreate(AppState& app) {
     }
 
     UiApplyModernChrome(app.settingsWindow);
+    Trace("6. Settings window created; next: controls");
     LayoutControls(app);
+    Trace("7. Controls created; next: status text");
     UpdateCommandStates(app);
+    Trace("8. Settings window ready; next: tray icons");
     return true;
 }
 

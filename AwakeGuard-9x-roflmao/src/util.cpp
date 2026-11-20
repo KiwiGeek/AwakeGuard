@@ -131,6 +131,27 @@ bool DeletePathAllowReadonly(const char* path, TextStr& errorOut) {
     return true;
 }
 
+namespace {
+bool g_trace = false;
+}  // namespace
+
+void TraceInit() {
+    const char* cursor = GetCommandLineA();
+    PathStr arg;
+    CmdLineNextArg(cursor, arg);  // skip argv[0]
+    while (CmdLineNextArg(cursor, arg)) {
+        if (StrEqualsI(arg.c_str(), "--trace")) {
+            g_trace = true;
+        }
+    }
+}
+
+void Trace(const char* step) {
+    if (g_trace) {
+        MessageBoxA(nullptr, step, "AwakeGuard trace", MB_OK | MB_SETFOREGROUND);
+    }
+}
+
 void ShellOpen(const char* target) {
     ShellExecuteA(nullptr, "open", target, nullptr, nullptr, SW_SHOWNORMAL);
 }

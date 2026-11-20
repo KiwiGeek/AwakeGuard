@@ -14,8 +14,8 @@ endif()
 include(cmake/Version.cmake)
 
 foreach(_icon IN ITEMS AwakeGuard.ico tray-active.ico tray-inactive.ico)
-    if(NOT EXISTS "${AWAKEGUARD_ASSETS_DIR}/${_icon}")
-        message(FATAL_ERROR "Missing icon ${AWAKEGUARD_ASSETS_DIR}/${_icon} (run scripts/generate-icons.py)")
+    if(NOT EXISTS "${AWAKEGUARD_ASSETS_DIR}/win95/${_icon}")
+        message(FATAL_ERROR "Missing icon ${AWAKEGUARD_ASSETS_DIR}/win95/${_icon} (run scripts/generate-icons.py)")
     endif()
 endforeach()
 

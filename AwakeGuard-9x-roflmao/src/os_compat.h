@@ -9,6 +9,11 @@ bool OsIsWindows9x();
 DWORD OsSetThreadExecutionState(DWORD flags);
 UINT OsNotifyIconDataSize(bool includeBalloonFields);
 
+// szTip length in the original NOTIFYICONDATA (Win95/NT4 shell).
+constexpr int kTrayTipCharsV1 = 64;
+// Usable szTip length for this OS (64 on 9x/NT4, 128 on 2000+).
+int OsTrayTipChars();
+
 // SHGetSpecialFolderPathA (shell32); nullptr if unavailable.
 typedef BOOL(WINAPI* SHGetSpecialFolderPathFn)(HWND, LPSTR, int, BOOL);
 
