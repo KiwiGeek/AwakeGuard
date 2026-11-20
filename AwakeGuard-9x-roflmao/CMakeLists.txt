@@ -73,6 +73,9 @@ target_compile_options(AwakeGuard-9x-ROFLMAO PRIVATE
 )
 
 target_link_options(AwakeGuard-9x-ROFLMAO PRIVATE
+    # Must also be on the link line: the CRT import library is chosen at link time.
+    # Without it the exe imports msvcrt.dll, which Windows 95 RTM doesn't ship.
+    -mcrtdll=msvcrt20
     -static
     -static-libgcc
     -static-libstdc++
