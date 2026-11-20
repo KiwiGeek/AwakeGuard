@@ -40,8 +40,10 @@ void RefreshBrushes() {
         DeleteObject(g_panelBrush);
     }
 
-    g_backgroundBrush = CreateSolidBrush(RGB(249, 249, 249));
-    g_panelBrush = CreateSolidBrush(RGB(243, 243, 243));
+    // System colours, not custom RGB: on a 16-colour VGA display anything outside
+    // the palette is dithered (dotted backgrounds, speckled text).
+    g_backgroundBrush = CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
+    g_panelBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
 }
 
 }  // namespace
@@ -119,11 +121,11 @@ void UiApplyModernChrome(HWND) {
 }
 
 COLORREF UiTextColor() {
-    return RGB(32, 32, 32);
+    return GetSysColor(COLOR_BTNTEXT);
 }
 
 COLORREF UiSecondaryTextColor() {
-    return RGB(96, 96, 96);
+    return GetSysColor(COLOR_GRAYTEXT);
 }
 
 HBRUSH UiBackgroundBrush() {

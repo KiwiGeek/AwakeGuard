@@ -199,7 +199,7 @@ LRESULT HandleStaticColor(WPARAM wParam, LPARAM lParam) {
 
     SetBkMode(dc, TRANSPARENT);
     if (tag == kStaticPanel) {
-        SetTextColor(dc, UiTextColor());
+        SetTextColor(dc, GetSysColor(COLOR_WINDOWTEXT));  // panel uses COLOR_WINDOW
         return reinterpret_cast<LRESULT>(UiPanelBrush());
     }
 
