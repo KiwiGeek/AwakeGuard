@@ -66,6 +66,7 @@ target_link_libraries(AwakeGuard-XP-LOL PRIVATE
 )
 
 target_link_options(AwakeGuard-XP-LOL PRIVATE
+    -s  # strip symbols; unstripped static libstdc++ roughly doubles the exe
     -static
     -static-libgcc
     -static-libstdc++
